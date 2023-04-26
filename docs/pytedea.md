@@ -1,0 +1,4 @@
+ 
+# pytedea module
+
+::: pytedea.pytedea
