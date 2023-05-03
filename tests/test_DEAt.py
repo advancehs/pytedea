@@ -1,6 +1,6 @@
 # import packages
-from pydea import DEAt
-from pydea.constant import CET_ADDI, ORIENT_IO, ORIENT_OO,ORIENT_HYPER, RTS_VRS, RTS_CRS, OPT_DEFAULT, OPT_LOCAL
+from pytedea import DEAt
+from pytedea.constant import CET_ADDI, ORIENT_IO, ORIENT_OO,ORIENT_HYPER, RTS_VRS, RTS_CRS, OPT_DEFAULT, OPT_LOCAL
 
 import pandas as pd
 # import all data (including the contextual varibale)

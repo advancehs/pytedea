@@ -50,6 +50,21 @@ RTS_Categories = {
     RTS_VRS: "Variable returns to scale",
     RTS_CRS: "Constant returns to scale"
 }
+# Emission abatement factor
+EMF_SAME = "same"
+"""
+EMF_SAME: Same emission abatement factor.
+"""
+
+EMF_DIFFERENT = "different"
+"""
+EMF_DIFFERENT: Different emission abatement factor.
+"""
+
+EMF_Categories = {
+    EMF_SAME: "Same emission abatement factor",
+    EMF_DIFFERENT: "Different emission abatement factor"
+}
 
 # Orientation
 ORIENT_IO = "io"
@@ -62,14 +77,25 @@ ORIENT_OO = "oo"
 ORIENT_OO: Output orientation.
 """
 
-ORIENT_HYPER = "hyper"
+ORIENT_UO = "uo"
 """
-ORIENT_HYPER: Hyperbolic orientation.
+ORIENT_UO: Undesirable Output orientation.
+"""
+
+ORIENT_HYPERYB = "hyper for y and b"
+"""
+ORIENT_HYPERYB: Hyperbolic orientation for desirable outputs and undesirable outputs.
+"""
+ORIENT_HYPERYX = "hyper for y and x"
+"""
+ORIENT_HYPERYX: Hyperbolic orientation for desirable outputs and inputs.
 """
 ORIENT_Categories = {
     ORIENT_IO: "Input orientation",
     ORIENT_OO: "Output orientation",
-    ORIENT_HYPER: "Hyperbolic orientation"
+    ORIENT_UO: "Undesirable Output orientation",
+    ORIENT_HYPERYB: "Hyperbolic orientation for desirable outputs and undesirable outputs",
+    ORIENT_HYPERYX: "Hyperbolic orientation for desirable outputs and inputs"
 }
 
 # left-hand or right-hand Derivative

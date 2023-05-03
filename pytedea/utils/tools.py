@@ -90,7 +90,7 @@ def to_2d_list(li):
         return rl
     return li
 
-def assert_valid_dea(sent,data,baseindex,refindex):
+def assert_valid_deat(sent,data,baseindex,refindex):
     inputvars = sent.split('=')[0].strip(' ').split(' ')
     outputvars = sent.split('=')[1].strip(' ').split(' ')
 
@@ -122,7 +122,7 @@ def assert_valid_dea(sent,data,baseindex,refindex):
 
     return outputvars,inputvars,y, x,yref, xref
 
-def assert_valid_ddf(sent,gy,gx):
+def assert_valid_ddft(sent,gy,gx):
     inputvars = sent.split('=')[0].strip(' ').split(' ')
     outputvars = sent.split('=')[1].split(':')[0].strip(' ').split(' ')
 
@@ -133,7 +133,7 @@ def assert_valid_ddf(sent,gy,gx):
 
     return outputvars,inputvars,gy,gx
 
-def assert_valid_ddf2(data,baseindex,refindex,outputvars,inputvars):
+def assert_valid_ddft2(data,baseindex,refindex,outputvars,inputvars):
 
     if type(baseindex) != type(None):
         varname1 = baseindex.split('=')[0]
@@ -155,6 +155,101 @@ def assert_valid_ddf2(data,baseindex,refindex,outputvars,inputvars):
     else:
         yref, xref = data.loc[:, outputvars], data.loc[:, inputvars]
     return y,x,yref,xref
+
+def assert_valid_dea(sent,data,baseindex,refindex):
+    inputvars = sent.split('=')[0].strip(' ').split(' ')
+    try:
+        outputvars = sent.split('=')[1].split(':')[0].strip(' ').split(' ')
+        unoutputvars = sent.split('=')[1].split(':')[1].strip(' ').split(' ')
+    except:
+        outputvars = sent.split('=')[1].strip(' ').split(' ')
+        unoutputvars = None
+
+    if type(baseindex) != type(None):
+        varname1 = baseindex.split('=')[0]
+        print(baseindex)
+        varvalue1 = ast.literal_eval(baseindex.split('=')[1])
+        y, x, b = data.loc[data[varname1].isin(varvalue1), outputvars
+        ], data.loc[data[varname1].isin(varvalue1), inputvars
+        ], data.loc[data[varname1].isin(varvalue1), unoutputvars
+        ]
+
+    else:
+        y, x, b = data.loc[:, outputvars
+                         ], data.loc[:, inputvars
+                         ], data.loc[:, unoutputvars]
+
+    # print(type(self.varname1),self.varvalue1,self.x,)
+    if type(refindex) != type(None):
+        varname = refindex.split('=')[0]
+        varvalue = ast.literal_eval(refindex.split('=')[1])
+
+        yref, xref, bref = data.loc[data[varname].isin(varvalue), outputvars
+        ], data.loc[data[varname].isin(varvalue), inputvars
+        ], data.loc[data[varname].isin(varvalue), unoutputvars]
+    else:
+        yref, xref, bref= data.loc[:, outputvars
+                               ], data.loc[:, inputvars
+                                  ], data.loc[:, unoutputvars]
+
+    if x.shape[0] != y.shape[0]:
+        raise ValueError(
+            "Number of DMUs must be the same in x and y.")
+    return outputvars,inputvars, unoutputvars,y, x,b ,yref, xref,bref
+
+def assert_valid_ddf(sent,gy,gx,gb):
+    inputvars = sent.split('=')[0].strip(' ').split(' ')
+    try:
+        outputvars = sent.split('=')[1].split(':')[0].strip(' ').split(' ')
+        unoutputvars = sent.split('=')[1].split(':')[1].strip(' ').split(' ')
+    except:
+        outputvars = sent.split('=')[1].strip(' ').split(' ')
+        unoutputvars = None
+
+    if len(outputvars) != len(gy):
+        raise ValueError("Number of outputs must be the same in y and gy.")
+    if len(inputvars) != len(gx):
+        raise ValueError("Number of inputs must be the same in x and gx.")
+    if len(unoutputvars) != len(gb):
+        raise ValueError("Number of undesirable outputs must be the same in b and gb.")
+    return outputvars,inputvars,unoutputvars,gy,gx,gb
+
+
+def assert_valid_ddf2(data, baseindex, refindex, outputvars, inputvars, unoutputvars):
+
+    if type(baseindex) != type(None):
+        varname1 = baseindex.split('=')[0]
+        print(baseindex)
+        varvalue1 = ast.literal_eval(baseindex.split('=')[1])
+        y, x, b = data.loc[data[varname1].isin(varvalue1), outputvars
+        ], data.loc[data[varname1].isin(varvalue1), inputvars
+        ], data.loc[data[varname1].isin(varvalue1), unoutputvars
+        ]
+
+    else:
+        y, x, b = data.loc[:, outputvars
+                         ], data.loc[:, inputvars
+                         ], data.loc[:, unoutputvars]
+
+    # print(type(self.varname1),self.varvalue1,self.x,)
+    if type(refindex) != type(None):
+        varname = refindex.split('=')[0]
+        varvalue = ast.literal_eval(refindex.split('=')[1])
+
+        yref, xref, bref = data.loc[data[varname].isin(varvalue), outputvars
+        ], data.loc[data[varname].isin(varvalue), inputvars
+        ], data.loc[data[varname].isin(varvalue), unoutputvars]
+    else:
+        yref, xref, bref= data.loc[:, outputvars
+                               ], data.loc[:, inputvars
+                                  ], data.loc[:, unoutputvars]
+
+    if x.shape[0] != y.shape[0]:
+        raise ValueError(
+            "Number of DMUs must be the same in x and y.")
+    return y, x,b ,yref, xref,bref
+
+
 
 
 def assert_valid_basic_data(y, x, z=None):

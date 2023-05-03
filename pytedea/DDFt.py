@@ -4,7 +4,7 @@
 from pyomo.environ import ConcreteModel, Set, Var, Objective, minimize, maximize, Constraint, Reals,PositiveReals
 import numpy as np
 import pandas as pd
-from .constant import CET_ADDI, ORIENT_IO, ORIENT_OO,ORIENT_HYPER, RTS_VRS, RTS_CRS, OPT_DEFAULT, OPT_LOCAL
+from .constant import CET_ADDI, ORIENT_IO, ORIENT_OO,ORIENT_HYPERYB, RTS_VRS, RTS_CRS, OPT_DEFAULT, OPT_LOCAL
 from .utils import tools
 from .DEAt import DEAt
 import ast
@@ -23,8 +23,8 @@ class DDFt(DEAt):
             refindex (String, optional): reference index. Defaults to None. e.g.: "Year=[2010]"
         """
         # Initialize DEA model
-        self.outputvars, self.inputvars,  self.gy, self.gx = tools.assert_valid_ddf(sent,gy,gx)
-        self.y,self.x,self.yref,self.xref = tools.assert_valid_ddf2(data, baseindex, refindex, self.outputvars, self.inputvars)
+        self.outputvars, self.inputvars,  self.gy, self.gx = tools.assert_valid_ddft(sent,gy,gx)
+        self.y,self.x,self.yref,self.xref = tools.assert_valid_ddft2(data, baseindex, refindex, self.outputvars, self.inputvars)
 
         self.xcol = self.x.columns
         self.ycol = self.y.columns

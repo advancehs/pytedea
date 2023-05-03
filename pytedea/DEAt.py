@@ -4,7 +4,7 @@
 from pyomo.environ import ConcreteModel, Set, Var, Objective, minimize, maximize, Constraint, Reals,PositiveReals
 import numpy as np
 import pandas as pd
-from .constant import CET_ADDI, ORIENT_IO, ORIENT_OO,ORIENT_HYPER, RTS_VRS, RTS_CRS, OPT_DEFAULT, OPT_LOCAL
+from .constant import CET_ADDI, ORIENT_IO, ORIENT_OO,ORIENT_HYPERYX,ORIENT_HYPERYB, RTS_VRS, RTS_CRS, OPT_DEFAULT, OPT_LOCAL
 from .utils import tools
 import ast
 
@@ -25,11 +25,11 @@ class DEAt:
         # Initialize DEA model
 
         self.rts = rts
-        self.outputvars, self.inputvars ,self.y, self.x,self.yref, self.xref= tools.assert_valid_dea(sent,data,baseindex,refindex )
+        self.outputvars, self.inputvars ,self.y, self.x,self.yref, self.xref= tools.assert_valid_deat(sent,data,baseindex,refindex )
 
         self.xcol = self.x.columns
         self.ycol = self.y.columns
-        if orient in [ORIENT_IO, ORIENT_OO, ORIENT_HYPER]:
+        if orient in [ORIENT_IO, ORIENT_OO, ORIENT_HYPERYX]:
             self.orient = orient
         else:
             self.orient = None
@@ -56,7 +56,7 @@ class DEAt:
 
             # Initialize variable
             self.__model__.theta = Var(Set(initialize=range(1)),bounds=(None, None), doc='efficiency')
-            if self.orient == ORIENT_HYPER:
+            if self.orient == ORIENT_HYPERYX:
                 self.__model__.delta = Var(Set(initialize=range(1)),bounds=(None, None), doc='efficiency**2')
 
             self.__model__.lamda = Var(self.__model__.I2, bounds=(0.0, None), doc='intensity variables')
@@ -68,7 +68,7 @@ class DEAt:
             elif self.orient == ORIENT_OO:
                 self.__model__.objective = Objective(
                     rule=self.__objective_rule(), sense=maximize, doc='objective function')
-            elif self.orient == ORIENT_HYPER:
+            elif self.orient == ORIENT_HYPERYX:
                 self.__model__.objective = Objective(
                     rule=self.__objective_rule(), sense=minimize, doc='objective function')
             elif type(self.orient) == type(None):
@@ -102,7 +102,7 @@ class DEAt:
 
     def __objective_rule(self):
         """Return the proper objective function"""
-        if self.orient != ORIENT_HYPER:
+        if self.orient != ORIENT_HYPERYX:
             def objective_rule(model):
                 return model.theta[0]*1  + sum(model.lamda[i2] *0 for i2 in model.I2)
         else:
@@ -120,7 +120,7 @@ class DEAt:
             def input_rule(model, k):
                 return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2) <= \
                     model.theta * self.x.loc[self.I0,self.xcol[k]]
-        elif self.orient == ORIENT_HYPER:
+        elif self.orient == ORIENT_HYPERYX:
             def input_rule(model, k):
                 return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2) <= \
                     model.delta * self.x.loc[self.I0,self.xcol[k]]
@@ -148,7 +148,7 @@ class DEAt:
             def output_rule(model, l):
                 return sum(model.lamda[i2] * self.yref.loc[i2,self.ycol[l]] for i2 in model.I2) \
                     >= self.y.loc[self.I0,self.ycol[l]]
-        elif self.orient == ORIENT_HYPER:
+        elif self.orient == ORIENT_HYPERYX:
             def output_rule(model, l):
                 return sum(model.lamda[i2] * self.yref.loc[i2,self.ycol[l]] for i2 in model.I2) \
                     >= self.y.loc[self.I0,self.ycol[l]]
@@ -166,7 +166,7 @@ class DEAt:
         return output_rule
 
     def __vrs_rule(self):
-        if self.orient != ORIENT_HYPER:
+        if self.orient != ORIENT_HYPERYX:
             def vrs_rule(model):
                 return sum(model.lamda[ i2] for i2 in model.I2) == 1
         else:
