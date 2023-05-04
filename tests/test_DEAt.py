@@ -1,6 +1,6 @@
 # import packages
 from pytedea import DEAt
-from pytedea.constant import CET_ADDI, ORIENT_IO, ORIENT_OO,ORIENT_HYPER, RTS_VRS, RTS_CRS, OPT_DEFAULT, OPT_LOCAL
+from pytedea.constant import CET_ADDI, ORIENT_IO, ORIENT_OO, RTS_VRS, RTS_CRS, OPT_DEFAULT, OPT_LOCAL
 
 import pandas as pd
 # import all data (including the contextual varibale)
@@ -11,7 +11,7 @@ def test_DEAt():
     # model = DEAt.DEAt(data,sent = "K L E CO2=Y",  orient=ORIENT_IO, rts=RTS_VRS, baseindex=None,refindex=None)
     # res = model.optimize(solver="mosek")
     # print(model.info(1))
-    model = DEAt.DEAt(data,sent = "K L E CO2=Y",  orient=ORIENT_HYPER, rts=RTS_VRS, baseindex=None,refindex=None)
+    model = DEAt.DEAt(data,sent = "K L E CO2=Y",  orient='Y', rts=RTS_VRS, baseindex=None,refindex=None)
     res = model.optimize(solver="mosek")
     print(model.info(1))
 

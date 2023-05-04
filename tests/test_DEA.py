@@ -1,6 +1,6 @@
 # import packages
 from pytedea import DEA
-from pytedea.constant import CET_ADDI, ORIENT_IO, ORIENT_OO, RTS_VRS, RTS_CRS, \
+from pytedea.constant import CET_ADDI, ORIENT_IO, ORIENT_OO,ORIENT_UO, RTS_VRS, RTS_CRS, \
                         OPT_LOCAL,EMF_SAME,EMF_DIFFERENT
 
 import pandas as pd
@@ -11,7 +11,7 @@ data = pd.read_excel(r"D:\Pythonwork\一带一路\处理一带一路数据\china
 def test_DEA():
 
     # model = DEA.DEA(data,sent = "K L E=Y:CO2",  orient="L", rts=RTS_VRS, baseindex=None,refindex=None)
-    model = DEA.DEA(data,sent = "K L E=Y:CO2",  orient=ORIENT_IO, rts=RTS_VRS, emf=EMF_DIFFERENT, baseindex=None,refindex=None)
+    model = DEA.DEA(data,sent = "K L E=Y:CO2",  orient=ORIENT_UO, rts=RTS_VRS, emf=EMF_SAME, baseindex=None,refindex=None)
     res = model.optimize(solver="mosek")
     print(model.info(1))
 

@@ -4,21 +4,21 @@
 from pyomo.environ import ConcreteModel, Set, Var, Objective, minimize, maximize, Constraint, Reals,PositiveReals
 import numpy as np
 import pandas as pd
-from .constant import CET_ADDI, ORIENT_IO, ORIENT_OO,ORIENT_UO, ORIENT_HYPERYB,ORIENT_HYPERYX, RTS_VRS, RTS_CRS, OPT_DEFAULT, OPT_LOCAL
+from .constant import CET_ADDI, ORIENT_IO, ORIENT_OO,ORIENT_UO,ORIENT_HYPERYX, RTS_VRS, RTS_CRS, OPT_DEFAULT, OPT_LOCAL
 from .utils import tools
 import ast
 
-class HYPER:
+class HYPERt:
     """Data Envelopment Analysis (DEA)
     """
     def __init__(self, data,sent = "inputvar=outputvar",  \
-                 orient=ORIENT_HYPERYB, rts=RTS_VRS, baseindex=None,refindex=None):
+                 orient=ORIENT_HYPERYX, rts=RTS_VRS, baseindex=None,refindex=None):
         """DEA: Directional distance function
 
         Args:
             data (pandas.DataFrame): input pandas.
-            sent (str): inputvars=outputvars[: unoutputvars]. e.g.: "K L= Y:CO2"
-            orient(str): ORIENT_HYPERYB ORIENT_HYPERYX , or choose some variables in sent,eg:L=Y, Y:CO2
+            sent (str): inputvars=outputvars[: unoutputvars]. e.g.: "K L CO2= Y"
+            orient(str): ORIENT_HYPERYX , or choose some variables in sent,eg:L=Y, CO2=Y
             rts (String): RTS_VRS (variable returns to scale) or RTS_CRS (constant returns to scale)
             baseindex (String, optional): estimate index. Defaults to None. e.g.: "Year=[2010]"
             refindex (String, optional): reference index. Defaults to None. e.g.: "Year=[2010]"
@@ -26,17 +26,16 @@ class HYPER:
         # Initialize DEA model
 
         self.rts = rts
-        self.outputvars, self.inputvars ,self.unoutputvars ,self.y, self.x,self.b,self.yref, self.xref,self.bref\
-            = tools.assert_valid_dea(sent,data,baseindex,refindex )
+        self.outputvars, self.inputvars ,self.y, self.x,self.yref, self.xref= \
+            tools.assert_valid_deat(sent,data,baseindex,refindex )
+
 
         self.xcol = self.x.columns
         self.ycol = self.y.columns
-        self.bcol = self.b.columns
-        if orient in [ORIENT_HYPERYB,ORIENT_HYPERYX]:
+        if orient in [ORIENT_HYPERYX]:
             self.orient = orient
             self.xindexs = None
             self.yindexs = None
-            self.bindexs = None
         else:
             self.orient = None
             if '=' in orient:
@@ -44,17 +43,10 @@ class HYPER:
                 yorient = orient.split('=')[1].strip(' ').split(' ')
                 self.xindexs = list(self.xcol).index(xorient)
                 self.yindexs = list(self.ycol).index(yorient)
-                self.bindexs = None
 
-            elif ':' in orient:
-                yorient = orient.split(':')[0].strip(' ').split(' ')
-                borient = orient.split(':')[1].strip(' ').split(' ')
-                self.yindexs = list(self.ycol).index(yorient)
-                self.bindexs = list(self.ycol).index(borient)
-                self.xindexs = None
             else:
                 raise ValueError(
-                    "You need to use '=' to specify y and x orientation or ':' to specify y and b orientation.")
+                    "You need to use '=' to specify y and x orientation.")
 
 
         # print(self.xcol)
@@ -70,12 +62,11 @@ class HYPER:
 
             self.__model__.K = Set(initialize=range(len(self.x.iloc[0])))   ## K 是投入个数
             self.__model__.L = Set(initialize=range(len(self.y.iloc[0])))   ## L 是产出个数 被评价单元和参考单元的K，L一样
-            self.__model__.J = Set(initialize=range(len(self.b.iloc[0]))) ## J 是非期望产出个数 被评价单元和参考单元的K，L一样
 
             # Initialize variable
-            self.__model__.gamma = Var(Set(initialize=range(1)),bounds=(0, 1), doc='1/output increase(1/eta)')
-            self.__model__.delta = Var(Set(initialize=range(1)),bounds=(0, 1), \
-                                       doc='bad decrease/output increase(lambda/eta)')
+            self.__model__.theta = Var(Set(initialize=range(1)),bounds=(0, 1), doc='theta')
+            self.__model__.theta2 = Var(Set(initialize=range(1)),bounds=(0, 1), \
+                                       doc='theta^2')
 
             self.__model__.lamda = Var(self.__model__.I2, bounds=(0.0, None), doc='intensity variables')
 
@@ -87,9 +78,7 @@ class HYPER:
                 self.__model__.K, rule=self.__input_rule(), doc='input constraint')
             self.__model__.output = Constraint(
                 self.__model__.L, rule=self.__output_rule(), doc='output constraint')
-            self.__model__.undesirable_output = Constraint(
-                self.__model__.J, rule=self.__undesirable_output_rule(),
-                                                           doc='undesirable output constraint')
+
 
             if self.rts == RTS_VRS:
                 self.__model__.vrs = Constraint(
@@ -110,7 +99,7 @@ class HYPER:
         """Return the proper objective function"""
 
         def objective_rule(model):
-            return model.delta[0]*1  + sum(model.lamda[i2] *0 for i2 in model.I2)
+            return model.theta2[0]*1  + sum(model.lamda[i2] *0 for i2 in model.I2)
         return objective_rule
 
 
@@ -120,22 +109,18 @@ class HYPER:
         if (self.orient == ORIENT_HYPERYX) :
             def input_rule(model, k):
                 return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2) <= \
-                    model.delta * self.x.loc[self.I0,self.xcol[k]]
-        elif (self.orient == ORIENT_HYPERYB):
-            def input_rule(model, k):
-                return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2) <= \
-                    model.gamma * self.x.loc[self.I0,self.xcol[k]]
+                    model.theta2 * self.x.loc[self.I0,self.xcol[k]]
+
         else:
             if type(self.xindexs) != type(None):
                 def input_rule(model, k):
                     if k != self.xindexs:
                         return Constraint.Skip
                     return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2) <= \
-                        model.delta * self.x.loc[self.I0,self.xcol[k]]
+                        model.theta2 * self.x.loc[self.I0,self.xcol[k]]
             else:
-                def input_rule(model, k):
-                    return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2) <= \
-                         model.gamma * self.x.loc[self.I0,self.xcol[k]]
+                raise ValueError(
+                    "You need to use '=' to specify y and x orientation.")
         return input_rule
 
     def __output_rule(self):
@@ -145,43 +130,10 @@ class HYPER:
                 >= self.y.loc[self.I0,self.ycol[l]]
         return output_rule
 
-    def __undesirable_output_rule(self):
-        """Return the proper undesirable output constraint"""
-        if (self.orient == ORIENT_HYPERYB):
-            def undesirable_output_rule(model, j):
-                return sum(model.lamda[i2] * self.bref.loc[i2, self.bcol[j]] for i2 in model.I2) \
-                    == model.delta * self.b.loc[self.I0, self.bcol[j]]
-        elif (self.orient == ORIENT_HYPERYX):
-            def undesirable_output_rule(model, j):
-                return sum(model.lamda[i2] * self.bref.loc[i2, self.bcol[j]] for i2 in model.I2) \
-                    == model.gamma * self.b.loc[self.I0, self.bcol[j]]
-        else:
-            if type(self.bindexs) != type(None):
-                def undesirable_output_rule(model, j):
-                    if j != self.bindexs:
-                        return Constraint.Skip
-                    return sum(model.lamda[i2] * self.bref.loc[i2, self.bcol[j]] for i2 in model.I2) \
-                        == model.delta * self.b.loc[self.I0, self.bcol[j]]
-            else:
-                def undesirable_output_rule(model, j):
-                    return sum(model.lamda[i2] * self.bref.loc[i2, self.bcol[j]] for i2 in model.I2) \
-                        == model.gamma * self.b.loc[self.I0, self.bcol[j]]
-        return undesirable_output_rule
-
     def __vrs_rule(self):
-        if (self.orient == ORIENT_HYPERYX) :
-            def vrs_rule(model):
-                return sum(model.lamda[ i2] for i2 in model.I2) == model.delta[0] *1
-        elif (self.orient == ORIENT_HYPERYB) :
-            def vrs_rule(model):
-                return sum(model.lamda[ i2] for i2 in model.I2) == model.gamma[0] *1
-        else:
-            if type(self.bindexs) != type(None):
-                def vrs_rule(model):
-                    return sum(model.lamda[i2] for i2 in model.I2) == model.gamma[0] * 1
-            else:
-                def vrs_rule(model):
-                    return sum(model.lamda[i2] for i2 in model.I2) == model.delta[0] * 1
+
+        def vrs_rule(model):
+            return sum(model.lamda[i2] for i2 in model.I2) == model.theta[0] * 1
         return vrs_rule
 
     def optimize(self,  solver=OPT_DEFAULT):
@@ -194,13 +146,8 @@ class HYPER:
         data2 = pd.DataFrame()
         for ind, problem in self.__modeldict.items():
             _, data2.loc[ind,"optimization_status"] = tools.optimize_model2(problem, ind, solver)
-            data2.loc[ind, "delta"] = np.asarray(list(problem.delta[:].value))
-            data2.loc[ind, "gamma"] = np.asarray(list(problem.gamma[:].value))
-
-
-        data2["lambda:bad decrease"] = data2["delta"]/data2["gamma"]
-        data2["eta:good increase"] = 1/data2["gamma"]
-
+            data2.loc[ind, "theta2"] = np.asarray(list(problem.theta2[:].value))
+            data2.loc[ind, "theta"] = np.sqrt(np.asarray(list(problem.theta2[:].value)))
 
         return data2
 

@@ -31,6 +31,8 @@ class DEAt:
         self.ycol = self.y.columns
         if orient in [ORIENT_IO, ORIENT_OO, ORIENT_HYPERYX]:
             self.orient = orient
+            self.xindexs = None
+            self.yindexs = None
         else:
             self.orient = None
             if orient in self.xcol:
@@ -68,11 +70,8 @@ class DEAt:
             elif self.orient == ORIENT_OO:
                 self.__model__.objective = Objective(
                     rule=self.__objective_rule(), sense=maximize, doc='objective function')
-            elif self.orient == ORIENT_HYPERYX:
-                self.__model__.objective = Objective(
-                    rule=self.__objective_rule(), sense=minimize, doc='objective function')
-            elif type(self.orient) == type(None):
-                if type(self.yindexs)==type(None):
+            else:
+                if type(self.xindexs)!=type(None):
                     self.__model__.objective = Objective(
                         rule=self.__objective_rule(), sense=minimize, doc='objective function')
                 else:
@@ -102,12 +101,8 @@ class DEAt:
 
     def __objective_rule(self):
         """Return the proper objective function"""
-        if self.orient != ORIENT_HYPERYX:
-            def objective_rule(model):
-                return model.theta[0]*1  + sum(model.lamda[i2] *0 for i2 in model.I2)
-        else:
-            def objective_rule(model):
-                return model.delta[0]*1  + sum(model.lamda[i2] *0 for i2 in model.I2)
+        def objective_rule(model):
+            return model.theta[0]*1  + sum(model.lamda[i2] *0 for i2 in model.I2)
         return objective_rule
 
 
@@ -115,24 +110,23 @@ class DEAt:
         """Return the proper input constraint"""
         if self.orient == ORIENT_OO:
             def input_rule(model, k):
-                return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2) <= self.x.loc[self.I0,self.xcol[k]]
+                return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2) <= \
+                    self.x.loc[self.I0,self.xcol[k]]
         elif self.orient == ORIENT_IO:
             def input_rule(model, k):
                 return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2) <= \
                     model.theta * self.x.loc[self.I0,self.xcol[k]]
-        elif self.orient == ORIENT_HYPERYX:
-            def input_rule(model, k):
-                return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2) <= \
-                    model.delta * self.x.loc[self.I0,self.xcol[k]]
-        elif type(self.yindexs) == type(None):
-            def input_rule(model, k):
-                if k != self.xindexs:
-                    return Constraint.Skip
-                return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2) <= \
-                    model.theta * self.x.loc[self.I0,self.xcol[k]]
-        elif type(self.xindexs) == type(None):
-            def input_rule(model, k):
-                return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2) <= self.x.loc[self.I0,self.xcol[k]]
+
+        else:
+            if type(self.xindexs)!=type(None):
+                def input_rule(model, k):
+                    if k != self.xindexs:
+                        return Constraint.Skip
+                    return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2) <= \
+                        model.theta * self.x.loc[self.I0,self.xcol[k]]
+            else:
+                def input_rule(model, k):
+                    return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2) <= self.x.loc[self.I0,self.xcol[k]]
 
         return input_rule
 
@@ -148,30 +142,24 @@ class DEAt:
             def output_rule(model, l):
                 return sum(model.lamda[i2] * self.yref.loc[i2,self.ycol[l]] for i2 in model.I2) \
                     >= self.y.loc[self.I0,self.ycol[l]]
-        elif self.orient == ORIENT_HYPERYX:
-            def output_rule(model, l):
-                return sum(model.lamda[i2] * self.yref.loc[i2,self.ycol[l]] for i2 in model.I2) \
-                    >= self.y.loc[self.I0,self.ycol[l]]
-        elif type(self.yindexs) == type(None):
-            def output_rule(model, l):
-                return sum(model.lamda[i2] * self.yref.loc[i2,self.ycol[l]] for i2 in model.I2) \
-                    >= self.y.loc[self.I0,self.ycol[l]]
-        elif type(self.xindexs) == type(None):
-            def output_rule(model, l):
-                if l != self.yindexs:
-                    return Constraint.Skip
-                return sum(model.lamda[i2] * self.yref.loc[i2,self.ycol[l]] for i2 in model.I2) \
-                    >=model.theta * self.y.loc[self.I0,self.ycol[l]]
+
+        else:
+            if type(self.yindexs)!=type(None):
+                def output_rule(model, l):
+                    if l != self.yindexs:
+                        return Constraint.Skip
+                    return sum(model.lamda[i2] * self.yref.loc[i2,self.ycol[l]] for i2 in model.I2) \
+                        >= model.theta * self.y.loc[self.I0,self.ycol[l]]
+            else:
+                def output_rule(model, l):
+                    return sum(model.lamda[i2] * self.yref.loc[i2,self.ycol[l]] for i2 in model.I2) \
+                        >= self.y.loc[self.I0,self.ycol[l]]
 
         return output_rule
 
     def __vrs_rule(self):
-        if self.orient != ORIENT_HYPERYX:
-            def vrs_rule(model):
-                return sum(model.lamda[ i2] for i2 in model.I2) == 1
-        else:
-            def vrs_rule(model):
-                return sum(model.lamda[ i2] for i2 in model.I2) == model.theta[0] *1
+        def vrs_rule(model):
+            return sum(model.lamda[i2] for i2 in model.I2) == 1
         return vrs_rule
 
     def optimize(self,  solver=OPT_DEFAULT):
@@ -186,17 +174,12 @@ class DEAt:
         for ind, problem in self.__modeldict.items():
             _, data2.loc[ind,"optimization_status"] = tools.optimize_model2(problem, ind, solver)
             data2.loc[ind,"theta"] = np.asarray(list(problem.theta[:].value))
-            lamda[ind] = np.asarray(list(problem.lamda[:].value))
 
-        lamda2 =pd.DataFrame(lamda).T
-        lamda2.columns = lamda2.columns.map(lambda x : "lamda"+ str(x) )
-        # data3 = pd.concat([data2,lamda2],axis=1)
-        data3 = data2
         if self.orient==ORIENT_OO:
-            data3["te"] = 1/  data3["theta"]
+            data2["te"] = 1/  data2["theta"]
         else:
-            data3["te"] = data3["theta"]
-        return data3
+            data2["te"] = data2["theta"]
+        return data2
 
     def info(self, dmu = "all"):
         """Show the infomation of the lp model

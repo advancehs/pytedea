@@ -192,7 +192,7 @@ class NDDF:
                 raise ValueError("Undefined model parameters.")
         elif self.rts == RTS_CRS:
             def output_rule(model, l):
-                return -1 * sum(model.phi[i2] * self.yref.loc[i2, self.ycol[l]] for i2 in model.I2
+                return -1 * sum(model.lamda[i2] * self.yref.loc[i2, self.ycol[l]] for i2 in model.I2
                                 ) + self.gy[l] * self.y.loc[self.I0, self.ycol[l]] * model.betay[l] <= \
                     -1 * self.y.loc[self.I0, self.ycol[l]]
         else:
@@ -248,26 +248,31 @@ class NDDF:
                 _, data2.loc[ind, "optimization_status"] = tools.optimize_model2(problem, ind, solver)
 
                 obj[ind] = problem.objective()
-                betax[ind] = np.asarray(list(problem.betax2[:].value))/np.asarray(list(problem.theta[:].value))
-                betax2[ind] = np.asarray(list(problem.betax2[:].value))
+                if abs(np.asarray(self.gx).sum()) >= 1:
+                    betax[ind] = np.asarray(list(problem.betax2[:].value))/np.asarray(list(problem.theta[:].value))
+                    betax2[ind] = np.asarray(list(problem.betax2[:].value))
+                else:
+                    betax[ind] = np.asarray(list(problem.betax[:].value))
                 theta[ind] = np.asarray(list(problem.theta[:].value))
                 betay[ind] = np.asarray(list(problem.betay[:].value))
                 betab[ind] = np.asarray(list(problem.betab[:].value))
 
             obj = pd.DataFrame(obj, index=["obj"]).T
             betax = pd.DataFrame(betax).T
-            betax.columns = betax.columns.map(lambda x: "Input" + str(x) + "'s slack")
-            betax2 = pd.DataFrame(betax2).T
-            betax2.columns = betax2.columns.map(lambda x: "Input" + str(x) + "'s slack2")
+            betax.columns = betax.columns.map(lambda x: "Input" + str(x) + "'s ratio")
+            if abs(np.asarray(self.gx).sum()) >= 1:
+                betax2 = pd.DataFrame(betax2).T
+                betax2.columns = betax2.columns.map(lambda x: "Input" + str(x) + "'s ratio2")
             theta = pd.DataFrame(theta).T
             theta.columns = theta.columns.map(lambda x: "theta")
             betay = pd.DataFrame(betay).T
-            betay.columns = betay.columns.map(lambda y: "Output" + str(y) + "'s slack")
-            beta = pd.concat([betax, betax2], axis=1)
-            beta = pd.concat([beta, theta], axis=1)
+            betay.columns = betay.columns.map(lambda y: "Output" + str(y) + "'s ratio")
+            beta = pd.concat([betax,theta], axis=1)
+            if abs(np.asarray(self.gx).sum()) >= 1:
+                beta = pd.concat([beta, betax2], axis=1)
             beta = pd.concat([beta, betay], axis=1)
             betab = pd.DataFrame(betab).T
-            betab.columns = betab.columns.map(lambda b: "Undesirable Output" + str(b) + "'s slack")
+            betab.columns = betab.columns.map(lambda b: "Undesirable Output" + str(b) + "'s ratio")
             beta = pd.concat([beta, betab], axis=1)
 
             dropcol = []
@@ -295,12 +300,12 @@ class NDDF:
 
             obj = pd.DataFrame(obj,index=["obj"]).T
             betax = pd.DataFrame(betax).T
-            betax.columns = betax.columns.map(lambda x : "Input"+ str(x)+"'s slack" )
+            betax.columns = betax.columns.map(lambda x : "Input"+ str(x)+"'s ratio" )
             betay = pd.DataFrame(betay).T
-            betay.columns = betay.columns.map(lambda y : "Output"+ str(y)+"'s slack" )
+            betay.columns = betay.columns.map(lambda y : "Output"+ str(y)+"'s ratio" )
             beta = pd.concat([betax,betay],axis=1)
             betab = pd.DataFrame(betab).T
-            betab.columns = betab.columns.map(lambda b : "Undesirable Output"+ str(b)+"'s slack" )
+            betab.columns = betab.columns.map(lambda b : "Undesirable Output"+ str(b)+"'s ratio" )
             beta = pd.concat([beta,betab],axis=1)
 
             dropcol=[]
