@@ -197,6 +197,7 @@ def assert_valid_dea(sent,data,baseindex,refindex):
             "Number of DMUs must be the same in x and y.")
     return outputvars,inputvars, unoutputvars,y, x,b ,yref, xref,bref
 
+
 def assert_valid_ddf(sent,gy,gx,gb):
     inputvars = sent.split('=')[0].strip(' ').split(' ')
     try:
@@ -249,8 +250,20 @@ def assert_valid_ddf2(data, baseindex, refindex, outputvars, inputvars, unoutput
             "Number of DMUs must be the same in x and y.")
     return y, x,b ,yref, xref,bref
 
+def assert_valid_mqdea(sent):
+    inputvars = sent.split('=')[0].strip(' ').split(' ')
+    try:
+        outputvars = sent.split('=')[1].split(':')[0].strip(' ').split(' ')
+        unoutputvars = sent.split('=')[1].split(':')[1].strip(' ').split(' ')
+    except:
+        outputvars = sent.split('=')[1].strip(' ').split(' ')
+        unoutputvars = None
+    return inputvars,outputvars,unoutputvars
 
-
+def assert_valid_mqdeat(sent):
+    inputvars = sent.split('=')[0].strip(' ').split(' ')
+    outputvars = sent.split('=')[1].strip(' ').split(' ')
+    return inputvars,outputvars
 
 def assert_valid_basic_data(y, x, z=None):
     y = trans_list(y)

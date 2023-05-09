@@ -10,7 +10,8 @@ from .DEAt import DEAt
 import ast
 
 class DDFt(DEAt):
-    def __init__(self, data,sent = "inputvar=outputvar",  gy=[1], gx=[1],rts=RTS_VRS, baseindex=None,refindex=None):
+    def __init__(self, data,sent = "inputvar=outputvar",  \
+                 gy=[1], gx=[1],rts=RTS_VRS, baseindex=None,refindex=None):
         """DEA: Directional distance function
 
         Args:
@@ -56,7 +57,7 @@ class DDFt(DEAt):
 
 
             # Initialize variable
-            self.__model__.theta = Var(Set(initialize=range(1)),bounds=(0.0, None), within=Reals,doc='directional distance')
+            self.__model__.beta = Var(Set(initialize=range(1)),bounds=(0.0, None), within=Reals,doc='directional distance')
             self.__model__.lamda = Var(self.__model__.I2, bounds=(0.0, None),within=Reals, doc='intensity variables')
 
             # Setup the objective function and constraints
@@ -74,21 +75,21 @@ class DDFt(DEAt):
     def __objective_rule(self):
         """Return the proper objective function"""
         def objective_rule(model):
-            return model.theta[0]*1
+            return model.beta[0]*1
         return objective_rule
 
     def __input_rule(self):
         """Return the proper input constraint"""
         def input_rule(model, k):
             return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2
-                    ) - model.theta[0]*self.gx[k]*self.x.loc[self.I0,self.xcol[k]] <= self.x.loc[self.I0,self.xcol[k]]
+                    ) - model.beta[0]*self.gx[k]*self.x.loc[self.I0,self.xcol[k]] <= self.x.loc[self.I0,self.xcol[k]]
         return input_rule
 
     def __output_rule(self):
         """Return the proper output constraint"""
         def output_rule(model, l):
             return -sum(model.lamda[i2] * self.yref.loc[i2,self.ycol[l]] for i2 in model.I2
-                    ) + model.theta[0]*self.gy[l] *self.y.loc[self.I0,self.ycol[l]]<= -self.y.loc[self.I0,self.ycol[l]]
+                    ) + model.beta[0]*self.gy[l] *self.y.loc[self.I0,self.ycol[l]]<= -self.y.loc[self.I0,self.ycol[l]]
         return output_rule
 
     def __vrs_rule(self):
@@ -107,16 +108,14 @@ class DDFt(DEAt):
         """
         # TODO(error/warning handling): Check problem status after optimization
 
-        data2,theta,lamda,= pd.DataFrame(),{},{}
+        data2,beta,lamda,= pd.DataFrame(),{},{}
         for ind, problem in self.__modeldict.items():
             _, data2.loc[ind,"optimization_status"]= tools.optimize_model2(problem, ind, solver)
-            theta[ind],= np.asarray(list(problem.theta[:].value))
-            # lamda[ind] =  np.asarray(list(problem.lamda[:].value))
-        # print(theta)
-        theta = pd.DataFrame(theta,index=["theta"]).T
+            beta[ind],= np.asarray(list(problem.beta[:].value))
+        beta = pd.DataFrame(beta,index=["beta"]).T
         # lamda2 = pd.DataFrame(lamda).T
         # lamda2.columns = map(lambda x: "lamda"+str(x) ,lamda2.columns)
-        data3 = pd.concat([data2,theta],axis=1)
+        data3 = pd.concat([data2,beta],axis=1)
         return data3
 
     def info(self, dmu = "all"):

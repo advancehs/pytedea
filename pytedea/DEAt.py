@@ -57,9 +57,15 @@ class DEAt:
             self.__model__.L = Set(initialize=range(len(self.y.iloc[0])))           ## L 是产出个数 被评价单元和参考单元的K，L一样
 
             # Initialize variable
-            self.__model__.theta = Var(Set(initialize=range(1)),bounds=(None, None), doc='efficiency')
-            if self.orient == ORIENT_HYPERYX:
-                self.__model__.delta = Var(Set(initialize=range(1)),bounds=(None, None), doc='efficiency**2')
+            if self.orient == ORIENT_IO:
+                self.__model__.beta = Var(Set(initialize=range(1)),bounds=(0, 1), doc='efficiency')
+            elif self.orient == ORIENT_OO:
+                self.__model__.beta = Var(Set(initialize=range(1)),bounds=(1, None), doc='efficiency')
+            else:
+                if type(self.xindexs)!=type(None):
+                    self.__model__.beta = Var(Set(initialize=range(1)), bounds=(0, 1), doc='efficiency')
+                else:
+                    self.__model__.beta = Var(Set(initialize=range(1)), bounds=(1, None), doc='efficiency')
 
             self.__model__.lamda = Var(self.__model__.I2, bounds=(0.0, None), doc='intensity variables')
 
@@ -102,7 +108,7 @@ class DEAt:
     def __objective_rule(self):
         """Return the proper objective function"""
         def objective_rule(model):
-            return model.theta[0]*1  + sum(model.lamda[i2] *0 for i2 in model.I2)
+            return model.beta[0]*1  + sum(model.lamda[i2] *0 for i2 in model.I2)
         return objective_rule
 
 
@@ -115,7 +121,7 @@ class DEAt:
         elif self.orient == ORIENT_IO:
             def input_rule(model, k):
                 return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2) <= \
-                    model.theta * self.x.loc[self.I0,self.xcol[k]]
+                    model.beta * self.x.loc[self.I0,self.xcol[k]]
 
         else:
             if type(self.xindexs)!=type(None):
@@ -123,7 +129,7 @@ class DEAt:
                     if k != self.xindexs:
                         return Constraint.Skip
                     return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2) <= \
-                        model.theta * self.x.loc[self.I0,self.xcol[k]]
+                        model.beta * self.x.loc[self.I0,self.xcol[k]]
             else:
                 def input_rule(model, k):
                     return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2) <= self.x.loc[self.I0,self.xcol[k]]
@@ -137,7 +143,7 @@ class DEAt:
         if self.orient == ORIENT_OO:
             def output_rule(model, l):
                 return sum(model.lamda[i2] * self.yref.loc[i2,self.ycol[l]] for i2 in model.I2) \
-                    >=model.theta * self.y.loc[self.I0,self.ycol[l]]
+                    >=model.beta * self.y.loc[self.I0,self.ycol[l]]
         elif self.orient == ORIENT_IO:
             def output_rule(model, l):
                 return sum(model.lamda[i2] * self.yref.loc[i2,self.ycol[l]] for i2 in model.I2) \
@@ -149,7 +155,7 @@ class DEAt:
                     if l != self.yindexs:
                         return Constraint.Skip
                     return sum(model.lamda[i2] * self.yref.loc[i2,self.ycol[l]] for i2 in model.I2) \
-                        >= model.theta * self.y.loc[self.I0,self.ycol[l]]
+                        >= model.beta * self.y.loc[self.I0,self.ycol[l]]
             else:
                 def output_rule(model, l):
                     return sum(model.lamda[i2] * self.yref.loc[i2,self.ycol[l]] for i2 in model.I2) \
@@ -173,12 +179,17 @@ class DEAt:
         data2,lamda = pd.DataFrame(),{}
         for ind, problem in self.__modeldict.items():
             _, data2.loc[ind,"optimization_status"] = tools.optimize_model2(problem, ind, solver)
-            data2.loc[ind,"theta"] = np.asarray(list(problem.theta[:].value))
+            data2.loc[ind,"beta"] = np.asarray(list(problem.beta[:].value))
 
         if self.orient==ORIENT_OO:
-            data2["te"] = 1/  data2["theta"]
+            data2["te"] = 1/  data2["beta"]
+        elif self.orient == ORIENT_IO:
+            data2["te"] = data2["beta"]
         else:
-            data2["te"] = data2["theta"]
+            if type(self.xindexs)!=type(None):
+                data2["te"] = data2["beta"]
+            else:
+                data2["te"] = 1 / data2["beta"]
         return data2
 
     def info(self, dmu = "all"):

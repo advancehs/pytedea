@@ -98,6 +98,40 @@ ORIENT_Categories = {
     ORIENT_HYPERYX: "Hyperbolic orientation for desirable outputs and inputs"
 }
 
+
+# technology
+TOTAL = "Global production technology"
+"""
+    window(#)                   use window production technology with the #-period bandwidth
+    biennial                    use biennial production technology
+    sequential                  use sequential production technology
+    TOTAL:  Global production technology.
+"""
+CONTEMPORARY = "Contemporary production technolog"
+"""
+CONTEMPORARY:  Contemporary production technology.
+"""
+
+TECH_Categories = {
+    TOTAL: "Global production technology",
+    CONTEMPORARY:"Contemporary production technology"
+}
+
+# dynamic productivity index
+MAL = " malquist prodcutivity index or malquist-luenberger prodcutivity index"
+
+"""
+    MAL              malquist prodcutivity index or malquist-luenberger prodcutivity index
+"""
+LUE = "luenberger prodcutivity index"
+"""
+    LUE              luenberger prodcutivity index
+"""
+DYNAMIC_Categories = {
+    MAL : " malquist prodcutivity index or malquist-luenberger prodcutivity index",
+    LUE : "luenberger prodcutivity index"
+}
+
 # left-hand or right-hand Derivative
 LEFT = "left-hand Derivative"
 """

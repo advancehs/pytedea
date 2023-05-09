@@ -392,7 +392,7 @@ class DEA:
                         data2["beta"] = data2["beta2"] / data2["theta"]
                     else:
                         data2.loc[ind,"beta"] = np.asarray(list(problem.beta[:].value))
-                if self.orient == ORIENT_OO:
+                if (self.orient == ORIENT_OO)  | (type(self.yindexs) != type(None)):
                     data2["te"] = 1 / data2["beta"]
                 else:
                     data2["te"] = data2["beta"]
@@ -401,7 +401,7 @@ class DEA:
                 for ind, problem in self.__modeldict.items():
                     _, data2.loc[ind, "optimization_status"] = tools.optimize_model2(problem, ind, solver)
                     data2.loc[ind, "beta"] = np.asarray(list(problem.beta[:].value))
-                if self.orient == ORIENT_OO:
+                if (self.orient == ORIENT_OO)  | (type(self.yindexs) != type(None)):
                     data2["te"] = 1 / data2["beta"]
                 else:
                     data2["te"] = data2["beta"]
@@ -412,7 +412,7 @@ class DEA:
             for ind, problem in self.__modeldict.items():
                 _, data2.loc[ind,"optimization_status"] = tools.optimize_model2(problem, ind, solver)
                 data2.loc[ind,"beta"] = np.asarray(list(problem.beta[:].value))
-            if self.orient == ORIENT_OO:
+            if (self.orient == ORIENT_OO) | (type(self.yindexs) != type(None)):
                 data2["te"] = 1 / data2["beta"]
             else:
                 data2["te"] = data2["beta"]

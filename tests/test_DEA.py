@@ -11,8 +11,8 @@ data = pd.read_excel(r"D:\Pythonwork\一带一路\处理一带一路数据\china
 def test_DEA():
 
     # model = DEA.DEA(data,sent = "K L E=Y:CO2",  orient="L", rts=RTS_VRS, baseindex=None,refindex=None)
-    model = DEA.DEA(data,sent = "K L E=Y:CO2",  orient=ORIENT_UO, rts=RTS_VRS, emf=EMF_SAME, baseindex=None,refindex=None)
+    model = DEA.DEA(data,sent = "K L E=Y:CO2",  orient="Y", rts=RTS_VRS, emf=EMF_SAME, baseindex=None,refindex=None)
     res = model.optimize(solver="mosek")
-    print(model.info(1))
+    print(res)
 
 test_DEA()

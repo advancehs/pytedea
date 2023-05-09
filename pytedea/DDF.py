@@ -52,13 +52,13 @@ class DDF(DEA):
 
 
             # Initialize variable
-            self.__model__.beta = Var(Set(initialize=range(1)),bounds=(0.0, None), \
+            self.__model__.beta = Var(Set(initialize=range(1)),bounds=(0.0, 1), \
                                       within=Reals,doc='directional distance')
             self.__model__.lamda = Var(self.__model__.I2, bounds=(0.0, None),within=Reals, doc='intensity variables')
             if self.rts == RTS_VRS:
                 if self.emf == EMF_SAME:
                     if abs(np.asarray(self.gx).sum())>=1:
-                        self.__model__.beta2 = Var(Set(initialize=range(1)), bounds=(0.0, None), \
+                        self.__model__.beta2 = Var(Set(initialize=range(1)), bounds=(0.0, 1), \
                                                   within=Reals, doc='beta*theta')
                     self.__model__.theta = Var(Set(initialize=range(1)), bounds=(0.0, 1.0), \
                                               within=Reals, doc='theta')
