@@ -35,7 +35,7 @@ class weakCNLSy:
         self.zcol = self.z.columns if type(z) != type(None) else None
 
         print("xcol,ycol,bcol are:",self.x.columns,self.y.columns,self.b.columns)
-        print("x,y,b are:",self.x,self.y,self.b)
+        # print("x,y,b are:",self.x,self.y,self.b)
 
         self.cet = cet
         self.fun = fun

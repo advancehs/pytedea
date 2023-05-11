@@ -955,3 +955,74 @@ def assert_valid_yxb_drf(sent,fenmu,fenzi):
 
     return outputvars, inputvars, unoutputvars, obj_coeflt, rule4_coeflt,neg_obj
 
+
+def split_MB(sent, sx, sy,level):
+    inputvars = sent.split('=')[0].strip(' ')
+    inputvars_np = inputvars.split('+')[0].strip(' ').split(' ')  ## 假设一定有不含污染的投入，为了简单点
+    inputvars_p = inputvars.split('+')[1].strip(' ').split(' ')  ## 一定有含污染的投入
+
+    outputvars = sent.split('=')[1].split(':')[0].strip(' ')
+    try:  ## 期望产出中，给了加号
+        outputvars_np = outputvars.split('+')[0].strip(' ').split(' ')
+        outputvars_p = outputvars.split('+')[1].strip(' ').split(' ')
+        if outputvars_np[0] == "":  ## 给了加号后，前面（含污染）是空的
+            outputvars_np = None
+        if outputvars_p[0] == "":  ## 给了加号后，后面（含污染）是空的
+            outputvars_p = None
+
+    except:  ## 期望产出中没有加号
+        outputvars_np = outputvars.strip(' ').split(' ')  ## 默认所有都是不含污染
+        if outputvars_np[0] == "":  ## 没有加号后，前面是空的，后面（含污染）是空的
+            outputvars_np = None
+
+
+        outputvars_p = None
+    unoutputvars = sent.split('=')[1].split(':')[1].strip(' ').split(' ')  ## 一定有非期望产出
+
+    if type(outputvars_np) == type(None):
+        if type(outputvars_p) == type(None):
+            n1, n2, n3, n4, n5 = len(inputvars_np), len(inputvars_p), 0, 0, len(unoutputvars)
+        elif type(outputvars_p) != type(None):
+            n1, n2, n3, n4, n5 = len(inputvars_np), len(inputvars_p), 0, len(outputvars_p), len(unoutputvars)
+
+    elif type(outputvars_np) != type(None):
+        if type(outputvars_p) == type(None):
+            n1, n2, n3, n4, n5 = len(inputvars_np), len(inputvars_p), len(outputvars_np), 0, len(unoutputvars)
+        elif type(outputvars_p) != type(None):
+            n1, n2, n3, n4, n5 = len(inputvars_np), len(inputvars_p), len(outputvars_np), len(outputvars_p), len(
+                unoutputvars)
+    # print(np.array(sx).shape[0])
+
+    if np.array(sx).shape[0] != n5:
+        raise ValueError(
+            "Number of lists in sx must be the same in length of b")
+    # print(n1,np.array(sx)[0,0:n1],np.array(sx)[0,0:n1].all(0))
+
+    if not np.array(sx)[0, n1:n1 + n2].any(0):
+        raise ValueError(
+            "Number of polluted input must be the same in the position of sx")
+
+    if type(outputvars_np) != type(None):
+        if type(outputvars_p) != type(None):
+           if level >5:
+               raise ValueError(
+                   "There are input_np, input_p, output_np, output_p in your statement of sent, \n"
+                   "so you can state at most 5 level in this model")
+
+        elif type(outputvars_p) == type(None):
+            if level > 4:
+                raise ValueError(
+                    "There are input_np, input_p, output_np in your statement of sent, \n"
+                    "so you can state at most 4 level in this model")
+    elif type(outputvars_np) == type(None):
+        if type(outputvars_p) != type(None):
+            if level > 4:
+                raise ValueError(
+                    "There are input_np, input_p, output_p in your statement of sent, \n"
+                    "so you can state at most 4 level in this model")
+        elif type(outputvars_p) == type(None):
+            if level > 3:
+                raise ValueError(
+                    "There are input_np, input_p, output_p in your statement of sent, \n"
+                    "so you can state at most 3 level in this model")
+    return inputvars_np, inputvars_p, outputvars_np, outputvars_p, unoutputvars, sx, sy,level

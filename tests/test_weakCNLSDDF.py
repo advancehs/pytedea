@@ -9,15 +9,15 @@ data = pd.read_excel(r"D:\Pythonwork\一带一路\处理一带一路数据\china
 def test_weakCNLSDDF():
 
     model = weakCNLSDDF.weakCNLSDDF(data,sent = "K L E=Y:CO2", gy=[1], gx=[1,1,1],gb=[1],  \
-                               fun=FUN_PROD, rts = RTS_VRS, \
+                               fun=FUN_PROD, rts = RTS_CRS, \
                                       )
 
     model.optimize( solver="mosek")
-
+    print(model.info())
     rd = StoNED.StoNED(model)
     print(rd.get_technical_inefficiency(RED_QLE))
 
 test_weakCNLSDDF()
 
 # RTS_VRS  有
-# RTS_CRS  没有
+# RTS_CRS  有

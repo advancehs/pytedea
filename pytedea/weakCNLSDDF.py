@@ -48,7 +48,7 @@ class weakCNLSDDF(weakCNLSy.weakCNLSy):
         print("xcol,ycol,bcol are:",self.x.columns,self.y.columns,self.b.columns)
 
         print("gx,gy,gb are:",self.gx,self.gy,self.gb)
-        print("aaa",self.y,self.x,self.b)
+        # print("aaa",self.y,self.x,self.b)
 
         self.__model__ = ConcreteModel()
 
@@ -63,7 +63,9 @@ class weakCNLSDDF(weakCNLSy.weakCNLSy):
 
 
         # Initialize the variables
-        self.__model__.alpha = Var(self.__model__.I, doc='alpha')
+        if self.rts == RTS_VRS:
+            self.__model__.alpha = Var(self.__model__.I, doc='alpha')
+
         self.__model__.beta = Var(
             self.__model__.I, self.__model__.K, bounds=(0.0, None), doc='beta')
         self.__model__.epsilon = Var(self.__model__.I, doc='residuals')
@@ -203,11 +205,11 @@ class weakCNLSDDF(weakCNLSy.weakCNLSy):
             def afriat_rule(model, i, h):
                 if i == h:
                     return Constraint.Skip
-                return __operator(model.alpha[i] \
+                return __operator(0 \
                   + sum(model.beta[i, k] * self.x.loc[i,self.xcol[k]] for k in model.K) \
                   + sum(model.delta[i, j] * self.b.loc[i,self.bcol[j]] for j in model.J) \
                   - sum(model.gamma[i, l] * self.y.loc[i,self.ycol[l]] for l in model.L),
-                  model.alpha[h]
+                  0
                   + sum(model.beta[h, k] * self.x.loc[i,self.xcol[k]] for k in model.K) \
                   + sum(model.delta[h, j] * self.b.loc[i,self.bcol[j]] for j in model.J) \
                   - sum(model.gamma[h, l] * self.y.loc[i,self.ycol[l]] for l in model.L))
