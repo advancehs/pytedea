@@ -41,7 +41,6 @@ class NDDF:
 
         if type(weight) != type(None):
             self.weight= weight
-
         else:
             self.weight=[]
             xhas1index = abs(np.asarray(self.gx)).sum() > 0

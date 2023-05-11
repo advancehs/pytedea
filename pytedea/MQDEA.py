@@ -112,6 +112,7 @@ class MQDEA:
             datazz["MEFFCH"] = datazz["D11"] / datazz["D11"].shift(1)
             datazz["MTECHCH"] = np.sqrt(datazz["D12"]/ datazz["D11"] * datazz["D11"].shift(1)/ datazz["D21"].shift(1))
 
+            datazz = datazz.fillna(1)
 
             self.datazz = datazz
     def optimize(self):

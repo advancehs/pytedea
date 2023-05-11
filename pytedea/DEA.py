@@ -43,15 +43,19 @@ class DEA:
         else:
             self.orient = None
             if orient in self.xcol:
-                self.xindexs = list(self.xcol).index(orient)
+                ltx = [1 if _ in orient else 0 for _ in self.xcol]
+                self.xindexs = [i for i, x in enumerate(ltx) if x == 1]
                 self.yindexs = None
                 self.bindexs = None
             elif orient in self.ycol:
-                self.yindexs = list(self.ycol).index(orient)
+                lty = [1 if _ in orient else 0 for _ in self.xcol]
+                self.yindexs = [i for i, x in enumerate(lty) if x == 1]
+
                 self.xindexs = None
                 self.bindexs = None
             elif orient in self.bcol:
-                self.bindexs = list(self.bcol).index(orient)
+                ltb = [1 if _ in orient else 0 for _ in self.xcol]
+                self.bindexs = [i for i, x in enumerate(ltb) if x == 1]
                 self.xindexs = None
                 self.yindexs = None
 
@@ -168,7 +172,7 @@ class DEA:
                 else:
                     if type(self.xindexs) != type(None):
                         def input_rule(model, k):
-                            if k != self.xindexs:
+                            if k not in self.xindexs:
                                 return Constraint.Skip
                             return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2) <= \
                                 model.beta2 * self.x.loc[self.I0,self.xcol[k]]
@@ -188,7 +192,7 @@ class DEA:
                 else:
                     if type(self.xindexs) != type(None):
                         def input_rule(model, k):
-                            if k != self.xindexs:
+                            if k not in self.xindexs:
                                 return Constraint.Skip
                             return sum(
                                 (model.phi[i2] + model.mu[i2]) * self.xref.loc[i2, self.xcol[k]] for i2 in model.I2) <= \
@@ -211,7 +215,7 @@ class DEA:
             else:
                 if type(self.xindexs) != type(None):
                     def input_rule(model, k):
-                        if k != self.xindexs:
+                        if k not in self.xindexs:
                             return Constraint.Skip
                         return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2) <= \
                             model.beta * self.x.loc[self.I0,self.xcol[k]]
@@ -238,7 +242,7 @@ class DEA:
                 else:
                     if type(self.yindexs) != type(None):
                         def output_rule(model, l):
-                            if l != self.yindexs:
+                            if l not in self.yindexs:
                                 return Constraint.Skip
                             return sum(model.lamda[i2] * self.yref.loc[i2,self.ycol[l]] for i2 in model.I2) \
                                 >=model.beta * self.y.loc[self.I0,self.ycol[l]]
@@ -258,7 +262,7 @@ class DEA:
                 else:
                     if type(self.yindexs) != type(None):
                         def output_rule(model, l):
-                            if l != self.yindexs:
+                            if l not in self.yindexs:
                                 return Constraint.Skip
                             return sum(model.phi[i2] * self.yref.loc[i2,self.ycol[l]] for i2 in model.I2) \
                                 >=model.beta * self.y.loc[self.I0,self.ycol[l]]
@@ -281,7 +285,7 @@ class DEA:
             else:
                 if type(self.yindexs) != type(None):
                     def output_rule(model, l):
-                        if l != self.yindexs:
+                        if l not in self.yindexs:
                             return Constraint.Skip
                         return sum(model.lamda[i2] * self.yref.loc[i2, self.ycol[l]] for i2 in model.I2) \
                             >= model.beta * self.y.loc[self.I0, self.ycol[l]]
@@ -308,7 +312,7 @@ class DEA:
                 else:
                     if type(self.bindexs) != type(None):
                         def undesirable_output_rule(model, j):
-                            if j != self.bindexs:
+                            if j not in self.bindexs:
                                 return Constraint.Skip
                             return sum(model.lamda[i2] * self.bref.loc[i2, self.bcol[j]] for i2 in model.I2) \
                                 == model.beta * self.b.loc[self.I0, self.bcol[j]]
@@ -328,7 +332,7 @@ class DEA:
                 else:
                     if type(self.bindexs) != type(None):
                         def undesirable_output_rule(model, j):
-                            if j != self.bindexs:
+                            if j not in self.bindexs:
                                 return Constraint.Skip
                             return sum(model.phi[i2] * self.bref.loc[i2, self.bcol[j]] for i2 in model.I2) \
                                 == model.beta * self.b.loc[self.I0, self.bcol[j]]
@@ -350,7 +354,7 @@ class DEA:
             else:
                 if type(self.bindexs) != type(None):
                     def undesirable_output_rule(model, j):
-                        if j != self.bindexs:
+                        if j not in self.bindexs:
                             return Constraint.Skip
                         return sum(model.lamda[i2] * self.bref.loc[i2, self.bcol[j]] for i2 in model.I2) \
                             == model.beta * self.b.loc[self.I0, self.bcol[j]]

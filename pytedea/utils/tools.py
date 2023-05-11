@@ -600,7 +600,7 @@ def assert_valid_mupltiple_x_y_data(y, x, z=None):
 
     return y, x, z
 
-def assert_valid_yxbz_nog(sent,z):
+def assert_valid_weakCNLS(sent,z):
     inputvars = sent.split('=')[0].strip(' ').split(' ')
 
     try:
@@ -612,6 +612,102 @@ def assert_valid_yxbz_nog(sent,z):
     zvars=z.strip(' ').split(' ') if type(z)!=type(None) else None
 
     return outputvars,inputvars,unoutputvars,zvars
+
+def assert_valid_CNLS(sent,z):
+    inputvars = sent.split('=')[0].strip(' ').split(' ')
+
+    outputvars = sent.split('=')[1].strip(' ').split(' ')
+    zvars=z.strip(' ').split(' ') if type(z)!=type(None) else None
+
+    return outputvars,inputvars,zvars
+def assert_valid_CNLS2(baseindex,refindex,data,outputvars,inputvars,zvars):
+
+
+    if type(baseindex) != type(None):
+        varname = baseindex.split('=')[0]
+        yr = ast.literal_eval(baseindex.split('=')[1])
+        y, x,z = data.loc[data[varname].isin(yr), outputvars], \
+                    data.loc[data[varname].isin(yr), inputvars], \
+                    data.loc[data[varname].isin(yr), zvars] if type(zvars) != type(None) else None
+        if type(refindex) != type(None):
+            yrref = ast.literal_eval(refindex.split('=')[1])
+
+            if len(set(yr) - set(yrref)) > 0:
+                print("ssssssssssssss1111111")
+                raise ValueError(
+                    "You must specify basic data smaller than reference data.")
+            else:
+                print("ssssssssssssss22222222")
+                yrref2 = list(set(yrref) - set(yr))
+                try:
+                    print(yrref2[0])
+                    yref, xref, zref = data.loc[data[varname].isin(yrref2), outputvars], \
+                        data.loc[data[varname].isin(yrref2), inputvars], \
+                        data.loc[data[varname].isin(yrref2), zvars] if type(zvars) != type(None) else None
+                except:
+                    yref, xref, zref = None, \
+                        None, \
+                        None
+        elif type(refindex) == type(None):
+            yrref = list(data[varname].unique())
+            if len(set(yr) - set(yrref)) > 0:
+                print("ssssssssssssss1111111")
+                raise ValueError(
+                    "You must specify basic data smaller than reference data.")
+            else:
+
+                print("ssssssssssssss22222222")
+                yrref2 = list(set(yrref) - set(yr))
+                try:
+                    print(yrref2[0])
+                    yref, xref, zref = data.loc[data[varname].isin(yrref2), outputvars], \
+                        data.loc[data[varname].isin(yrref2), inputvars], \
+                        data.loc[data[varname].isin(yrref2), zvars] if type(zvars) != type(None) else None
+                except:
+                    yref, xref, zref = None, \
+                        None, \
+                        None
+
+    else:
+        y, x,z = data.loc[:, outputvars], data.loc[:, inputvars], \
+                    data.loc[:, zvars] if type(zvars) != type(None) else None
+
+        if type(refindex) != type(None):
+            varname = refindex.split('=')[0]
+            yrref = ast.literal_eval(refindex.split('=')[1])
+            yr = list(data[varname].unique())
+            if len(set(yr) - set(yrref)) > 0:
+                print("ssssssssssssss1111111")
+                raise ValueError(
+                    "You must specify basic data smaller than reference data.")
+            else:
+                print("ssssssssssssss22222222")
+                yrref2 = list(set(yrref) - set(yr))
+                try:
+                    print(yrref2[0])
+                    yref, xref, zref = data.loc[data[varname].isin(yrref2), outputvars], \
+                        data.loc[data[varname].isin(yrref2), inputvars], \
+                        data.loc[data[varname].isin(yrref2), zvars] if type(zvars) != type(None) else None
+                except:
+                    yref, xref, zref = None, \
+                        None, \
+                        None
+        elif type(refindex) == type(None):
+            yref, xref, zref = None, \
+                None, \
+                None
+
+
+    if type(yref) != type(None):
+        referenceflag = True
+    else:
+        referenceflag = False
+
+    # print("1",y)
+    # print("2",yref)
+    # print("3",referenceflag)
+    return y,x,z,yref,xref,zref,referenceflag
+
 
 def assert_valid_yxb(sent,gy,gx,gb):
     inputvars = sent.split('=')[0].strip(' ').split(' ')
@@ -664,7 +760,7 @@ def assert_valid_yxb2(baseindex,refindex,data,outputvars,inputvars,unoutputvars)
 
 
 
-def assert_valid_yxbz2(baseindex,refindex,data,outputvars,inputvars,unoutputvars,zvars):
+def assert_valid_weakCNLSDDF2(baseindex,refindex,data,outputvars,inputvars,unoutputvars,zvars):
 
 
     if type(baseindex) != type(None):
@@ -760,7 +856,7 @@ def assert_valid_yxbz2(baseindex,refindex,data,outputvars,inputvars,unoutputvars
     # print("3",referenceflag)
     return y,x,b,z,yref,xref,bref,zref,referenceflag
 
-def assert_valid_yxbz(sent,gy,gx,gb,z=None):
+def assert_valid_weakCNLSDDF(sent,gy,gx,gb,z=None):
     inputvars = sent.split('=')[0].strip(' ').split(' ')
 
     try:
@@ -774,19 +870,38 @@ def assert_valid_yxbz(sent,gy,gx,gb,z=None):
         zvars = z.strip(' ').split(" ")
     else:
         zvars = None
-    if len(outputvars) !=  gy.shape[1]:
+    if len(outputvars) !=  len(gy):
         raise ValueError("Number of outputs must be the same in y and gy.")
-    if len(inputvars) != gx.shape[1]:
+    if len(inputvars) != len(gx):
         raise ValueError("Number of inputs must be the same in x and gx.")
 
     if type(gb) != type(None):
-        if len(unoutputvars) != gb.shape[1]:
+        if len(unoutputvars) != len(gb):
             raise ValueError(
                 "Number of undesirable outputs must be the same in b and gb.")
-        gb.columns = unoutputvars
-    gy.columns,gx.columns ,=outputvars,inputvars,
+
     return outputvars,inputvars,unoutputvars,zvars,gy,gx,gb
 
+
+def assert_valid_CNLSDDF(sent,gy,gx,z=None):
+    inputvars = sent.split('=')[0].strip(' ').split(' ')
+
+
+    outputvars = sent.split('=')[1].strip(' ').split(' ')
+
+
+    if type(z)!=type(None):
+        zvars = z.strip(' ').split(" ")
+    else:
+        zvars = None
+    if len(outputvars) !=  len(gy):
+        raise ValueError("Number of outputs must be the same in y and gy.")
+    if len(inputvars) != len(gx):
+        raise ValueError("Number of inputs must be the same in x and gx.")
+
+
+
+    return outputvars,inputvars,zvars,gy,gx
 
 
 

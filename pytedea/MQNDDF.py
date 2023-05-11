@@ -91,7 +91,7 @@ class MQNDDF:
                                             (datazz["D21"].shift(1)-datazz["D11"].shift(1)))
             else:
                 raise ValueError("Undefined model parameters.")
-
+            datazz = datazz.fillna(1)
             self.datazz = datazz
     def optimize(self):
 

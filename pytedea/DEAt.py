@@ -36,10 +36,12 @@ class DEAt:
         else:
             self.orient = None
             if orient in self.xcol:
-                self.xindexs = list(self.xcol).index(orient)
+                ltx = [1 if _ in orient else 0 for _ in self.xcol]
+                self.xindexs = [i for i, x in enumerate(ltx) if x == 1]
                 self.yindexs = None
             elif orient in self.ycol:
-                self.yindexs = list(self.ycol).index(orient)
+                lty = [1 if _ in orient else 0 for _ in self.xcol]
+                self.yindexs = [i for i, x in enumerate(lty) if x == 1]
                 self.xindexs = None
 
         # print(self.xcol)
@@ -126,7 +128,7 @@ class DEAt:
         else:
             if type(self.xindexs)!=type(None):
                 def input_rule(model, k):
-                    if k != self.xindexs:
+                    if k not in self.xindexs:
                         return Constraint.Skip
                     return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2) <= \
                         model.beta * self.x.loc[self.I0,self.xcol[k]]
@@ -152,7 +154,7 @@ class DEAt:
         else:
             if type(self.yindexs)!=type(None):
                 def output_rule(model, l):
-                    if l != self.yindexs:
+                    if l not in self.yindexs:
                         return Constraint.Skip
                     return sum(model.lamda[i2] * self.yref.loc[i2,self.ycol[l]] for i2 in model.I2) \
                         >= model.beta * self.y.loc[self.I0,self.ycol[l]]
@@ -181,7 +183,7 @@ class DEAt:
             _, data2.loc[ind,"optimization_status"] = tools.optimize_model2(problem, ind, solver)
             data2.loc[ind,"beta"] = np.asarray(list(problem.beta[:].value))
 
-        if self.orient==ORIENT_OO:
+        if self.orient==ORIENT_OO :
             data2["te"] = 1/  data2["beta"]
         elif self.orient == ORIENT_IO:
             data2["te"] = data2["beta"]

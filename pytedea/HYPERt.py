@@ -31,6 +31,7 @@ class HYPERt:
 
 
         self.xcol = self.x.columns
+        print("sss",self.xcol)
         self.ycol = self.y.columns
         if orient in [ORIENT_HYPERYX]:
             self.orient = orient
@@ -41,8 +42,12 @@ class HYPERt:
             if '=' in orient:
                 xorient = orient.split('=')[0].strip(' ').split(' ')
                 yorient = orient.split('=')[1].strip(' ').split(' ')
-                self.xindexs = list(self.xcol).index(xorient)
-                self.yindexs = list(self.ycol).index(yorient)
+
+                ltx = [1 if _ in xorient else 0 for _ in self.xcol]
+                lty = [1 if _ in yorient else 0 for _ in self.ycol]
+                self.xindexs = [i for i, x in enumerate(ltx) if x == 1]
+                self.yindexs = [i for i, x in enumerate(lty) if x == 1]
+                print(self.xindexs)
 
             else:
                 raise ValueError(
@@ -114,7 +119,7 @@ class HYPERt:
         else:
             if type(self.xindexs) != type(None):
                 def input_rule(model, k):
-                    if k != self.xindexs:
+                    if k not in self.xindexs:
                         return Constraint.Skip
                     return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2) <= \
                         model.theta2 * self.x.loc[self.I0,self.xcol[k]]

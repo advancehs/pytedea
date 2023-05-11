@@ -42,15 +42,19 @@ class HYPER:
             if '=' in orient:
                 xorient = orient.split('=')[0].strip(' ').split(' ')
                 yorient = orient.split('=')[1].strip(' ').split(' ')
-                self.xindexs = list(self.xcol).index(xorient)
-                self.yindexs = list(self.ycol).index(yorient)
+                ltx = [1 if _ in xorient else 0 for _ in self.xcol]
+                lty = [1 if _ in yorient else 0 for _ in self.ycol]
+                self.xindexs = [i for i, x in enumerate(ltx) if x == 1]
+                self.yindexs = [i for i, x in enumerate(lty) if x == 1]
                 self.bindexs = None
 
             elif ':' in orient:
                 yorient = orient.split(':')[0].strip(' ').split(' ')
                 borient = orient.split(':')[1].strip(' ').split(' ')
-                self.yindexs = list(self.ycol).index(yorient)
-                self.bindexs = list(self.ycol).index(borient)
+                ltb = [1 if _ in borient else 0 for _ in self.bcol]
+                lty = [1 if _ in yorient else 0 for _ in self.ycol]
+                self.bindexs = [i for i, x in enumerate(ltb) if x == 1]
+                self.yindexs = [i for i, x in enumerate(lty) if x == 1]
                 self.xindexs = None
             else:
                 raise ValueError(
@@ -128,7 +132,7 @@ class HYPER:
         else:
             if type(self.xindexs) != type(None):
                 def input_rule(model, k):
-                    if k != self.xindexs:
+                    if k not in self.xindexs:
                         return Constraint.Skip
                     return sum(model.lamda[i2] * self.xref.loc[i2,self.xcol[k]] for i2 in model.I2) <= \
                         model.delta * self.x.loc[self.I0,self.xcol[k]]
@@ -158,7 +162,7 @@ class HYPER:
         else:
             if type(self.bindexs) != type(None):
                 def undesirable_output_rule(model, j):
-                    if j != self.bindexs:
+                    if j not in self.bindexs:
                         return Constraint.Skip
                     return sum(model.lamda[i2] * self.bref.loc[i2, self.bcol[j]] for i2 in model.I2) \
                         == model.delta * self.b.loc[self.I0, self.bcol[j]]

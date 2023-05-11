@@ -136,6 +136,7 @@ class MQDDF:
             else:
                 raise ValueError("Undefined model parameters.")
 
+            datazz = datazz.fillna(1)
             self.datazz = datazz
     def optimize(self):
 

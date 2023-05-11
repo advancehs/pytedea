@@ -110,7 +110,7 @@ class MQDDFt:
                         datazz["MTECHCH"] = np.sqrt((1-datazz["D12"])/(1-datazz["D11"])*\
                                                     (1-datazz["D11"].shift(1))/(1-datazz["D21"].shift(1)))
 
-
+            datazz = datazz.fillna(1)
 
             self.datazz = datazz
     def optimize(self):
