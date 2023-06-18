@@ -3,7 +3,8 @@ from pytedea import weakCNLSb,StoNED
 from pytedea.constant import FUN_PROD, OPT_LOCAL,RTS_VRS ,RTS_CRS,CET_ADDI, CET_MULT,RED_QLE
 import pandas as pd
 
-data = pd.read_excel(r"D:\Pythonwork\一带一路\处理一带一路数据\china data.xlsx").query('year>2018').reset_index(drop=True)
+data = pd.read_excel(r"D:\Pythonwork\一带一路\处理一带一路数据\china data.xlsx").query('year>2016').reset_index(drop=True)
+# data = pd.read_excel(r"D:\Pythonwork\一带一路\处理一带一路数据\oecd data.xlsx").query('year>2015').reset_index(drop=True)
 
 
 def test_weakCNLSb():
@@ -16,7 +17,7 @@ def test_weakCNLSb():
     model.optimize(solver="mosek",)
 
     rd = StoNED.StoNED(model)
-    print(rd.get_technical_inefficiency(RED_QLE))
+    print(rd.get_technical_efficiency(RED_QLE))
 
 test_weakCNLSb()
 

@@ -18,20 +18,23 @@ class StoNED:
         """
         self.model = model
         self.x = model.x
-        if self.model.__class__.__name__ == "weakCNLSb":
-            print("kind1 weakCNLSb")
-            self.y = self.model.b.iloc[:,0].values
-        elif self.model.__class__.__name__ == "weakCNLSx":
-            print("kind2 weakCNLSx")
-            self.y = self.model.x.iloc[:,0].values
+
         # If the model is a directional distance based, set cet to CET_ADDI
-        elif hasattr(self.model, 'get_gamma2'):
-            print("kind3 has get_gamma2")
+        if hasattr(self.model, 'gx'):
+            print("kind1 cnlsddf model")
             self.model.cet = CET_ADDI
-            self.y = np.diag(np.tensordot(
-                self.model.y, self.model.get_gamma2(), axes=([1], [1])))
+            if model.__class__.__name__ == "weakCNLSNDDF_notransfer":
+                self.y = np.diag(np.tensordot(
+                    self.model.y, self.model.get_gamma2(), axes=([1], [1])))
+            else:
+                self.y = model.actrual_value.iloc[:, 0].values
+
+        elif model.__class__.__name__ == "weakCNLSb":
+            self.y = 1/self.model.b.iloc[:,0].values
+        elif model.__class__.__name__ == "weakMetaCNLSb":
+            self.y = 1/self.model.GCE_C.iloc[:,0].values
         else:
-            print("kind4 has not get_gamma2")
+            print("kind2 cnls model")
             self.y = self.model.y.iloc[:,0].values
 
     def get_unconditional_expected_inefficiency(self, method=RED_MOM):
@@ -61,13 +64,18 @@ class StoNED:
         tools.assert_optimized(self.model.optimization_status)
         self.get_unconditional_expected_inefficiency(method)
         sigmas = self.sigma_u * self.sigma_v / math.sqrt(self.sigma_u ** 2 + self.sigma_v ** 2)
-        mus = (self.mu * (self.sigma_v**2)-self.residual * (self.sigma_u**2)) / (self.sigma_u ** 2 + self.sigma_v ** 2)
+        mus = (self.mu * (self.sigma_v**2)-self.epsilon2 * (self.sigma_u**2)) / (self.sigma_u ** 2 + self.sigma_v ** 2)
         if self.model.fun == FUN_PROD:
             jlms = sigmas * (stats.norm.pdf(mus / sigmas)) / (stats.norm.cdf(mus / sigmas)) + mus
             if self.model.cet == CET_ADDI:
-                print("haha",jlms,self.y)
-                return pd.Series(jlms / self.y,index=self.model.get_residual().index)
+                print("jlms",jlms,self.y)
+                return pd.Series(jlms / (self.y + jlms)  ,index=self.model.get_residual().index)
             elif self.model.cet == CET_MULT:
+                print("jlms",jlms,self.y)
+
+                # bc = np.exp(-mus + 0.5 * (sigmas) ** 2) * (stats.norm.cdf((mus / sigmas) - sigmas) / stats.norm.cdf(mus / sigmas))
+                # print("bc",bc)
+                # return pd.Series(1-bc,index=self.model.get_residual().index)
                 return pd.Series(1-np.exp(-jlms),index=self.model.get_residual().index)
 
         elif self.model.fun == FUN_COST:
@@ -79,6 +87,27 @@ class StoNED:
 
         raise ValueError("Undefined model parameters.")
 
+    def get_inefficiency(self, method=RED_MOM): ## E(u_i|epsilon_i)
+        """
+        Args:
+            method (String, optional): RED_MOM (Method of moments) or RED_QLE (Quassi-likelihood estimation). Defaults to RED_MOM.
+
+        calculate sigma_u, sigma_v, mu, and epsilon value
+        """
+        tools.assert_optimized(self.model.optimization_status)
+        self.get_unconditional_expected_inefficiency(method)
+        sigmas = self.sigma_u * self.sigma_v / math.sqrt(self.sigma_u ** 2 + self.sigma_v ** 2)
+        mus = (self.mu * (self.sigma_v**2)-self.epsilon2 * (self.sigma_u**2)) / (self.sigma_u ** 2 + self.sigma_v ** 2)
+        if self.model.fun == FUN_PROD:
+            jlms = sigmas * (stats.norm.pdf(mus / sigmas)) / (stats.norm.cdf(mus / sigmas)) + mus
+            return pd.Series(jlms, index=self.model.get_residual().index)
+        elif self.model.fun == FUN_COST:
+            jlms = sigmas * (stats.norm.pdf(-mus / sigmas)) / (stats.norm.cdf(-mus / sigmas)) - mus
+            return pd.Series(jlms, index=self.model.get_residual().index)
+        raise ValueError("Undefined model parameters.")
+
+
+
     def get_technical_efficiency(self, method=RED_MOM):
         """
         Args:
@@ -89,15 +118,35 @@ class StoNED:
         tools.assert_optimized(self.model.optimization_status)
         self.get_unconditional_expected_inefficiency(method)
         sigmas = self.sigma_u * self.sigma_v / math.sqrt(self.sigma_u ** 2 + self.sigma_v ** 2)
-        mus = (self.mu* (self.sigma_v ** 2) -self.residual * (self.sigma_u ** 2) )/ (self.sigma_u ** 2 + self.sigma_v ** 2)
-
-
-        bc = np.exp(-mus + 0.5 * (sigmas) ** 2) * (stats.norm.cdf((mus / sigmas) - sigmas) / stats.norm.cdf(mus / sigmas))
+        mus = (self.mu * (self.sigma_v**2)-self.residual * (self.sigma_u**2)) / (self.sigma_u ** 2 + self.sigma_v ** 2)
         if self.model.fun == FUN_PROD:
-            # return bc
-            return pd.Series(bc,index=self.model.get_residual().index)
+            if self.model.cet == CET_ADDI:
+                jlms = sigmas * (stats.norm.pdf(mus / sigmas)) / (stats.norm.cdf(mus / sigmas)) + mus
+
+                print("haha",jlms,self.y)
+                return pd.Series(self.y / (self.y+jlms),index=self.model.get_residual().index)
+            elif self.model.cet == CET_MULT:
+                # bc = np.exp(-mus + 0.5 * (sigmas) ** 2) * (stats.norm.cdf((mus / sigmas) - sigmas) / stats.norm.cdf(mus / sigmas))
+                jlms = sigmas * (stats.norm.pdf(mus / sigmas)) / (stats.norm.cdf(mus / sigmas)) + mus
+
+                print("haha",jlms,self.y)
+                # print("haha",bc,self.y)
+
+                # bc = np.exp(-mus + 0.5 * (sigmas) ** 2) * (stats.norm.cdf((mus / sigmas) - sigmas) / stats.norm.cdf(mus / sigmas))
+                # return pd.Series(self.y / (self.y * np.exp(jlms)-1),index=self.model.get_residual().index) # 负的
+                return pd.Series(np.exp(-jlms),index=self.model.get_residual().index)
+                # return pd.Series(bc,index=self.model.get_residual().index)
+
+        elif self.model.fun == FUN_COST:
+            jlms = sigmas * (stats.norm.pdf(-mus / sigmas)) / (stats.norm.cdf(-mus / sigmas)) - mus
+            if self.model.cet == CET_ADDI:
+                return pd.Series( self.y/ (self.y-jlms),index=self.model.get_residual().index)
+            elif self.model.cet == CET_MULT:
+                return pd.Series(np.exp(jlms),index=self.model.get_residual().index)
 
         raise ValueError("Undefined model parameters.")
+
+        # bc = np.exp(-mus + 0.5 * (sigmas) ** 2) * (stats.norm.cdf((mus / sigmas) - sigmas) / stats.norm.cdf(mus / sigmas))
 
     def __method_of_moment(self, residual):
         """Method of moment"""
@@ -125,9 +174,9 @@ class StoNED:
         self.sigma_v = (M2_mean - ((math.pi - 2) / math.pi) * self.sigma_u ** 2) ** (1 / 2)
         self.mu = (self.sigma_u ** 2 * 2 / math.pi) ** (1 / 2)
         if self.model.fun == FUN_PROD:
-            self.epsilon = residual - self.mu
+            self.epsilon2 = residual - self.mu
         else:
-            self.epsilon = residual + self.mu
+            self.epsilon2 = residual + self.mu
 
     def __quassi_likelihood(self, residual):
         def __quassi_likelihood_estimation(lamda, eps):
@@ -183,9 +232,9 @@ class StoNED:
         self.sigma_u = self.sigma_v * lamda
 
         if self.model.fun == FUN_PROD:
-            self.epsilon = residual - self.mu
+            self.epsilon2 = residual - self.mu
         elif self.model.fun == FUN_COST:
-            self.epsilon = residual + self.mu
+            self.epsilon2 = residual + self.mu
         self.residual = residual
     def __gaussian_kernel_estimation(self, residual):
         def __gaussian_kernel_estimator(g):

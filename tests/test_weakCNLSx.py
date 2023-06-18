@@ -9,7 +9,7 @@ data = pd.read_excel(r"D:\Pythonwork\一带一路\处理一带一路数据\china
 def test_weakCNLSx():
     model = weakCNLSx.weakCNLSx(data,sent = "K=Y:CO2", \
                               # cet=CET_MULT, rts = RTS_VRS, fun=FUN_PROD, \
-                                    cet=CET_ADDI, rts=RTS_CRS, fun=FUN_PROD, \
+                                    cet=CET_ADDI, rts=RTS_VRS, fun=FUN_PROD, \
                                 # baseindex="Year=[2010,2011]",refindex="Year=[2010,2011]"
                               )
     # model.optimize( email= '1019753743@qq.com',)
@@ -20,5 +20,5 @@ def test_weakCNLSx():
 
 
 test_weakCNLSx()
-# RTS_VRS  有
-# RTS_CRS  有
+# RTS_VRS  没有
+# RTS_CRS  没有

@@ -4,19 +4,21 @@ from pyomo.core.expr.numvalue import NumericValue
 import numpy as np
 import pandas as pd
 
-from .constant import CET_ADDI, CET_MULT, FUN_PROD, FUN_COST, OPT_DEFAULT, RTS_CRS, RTS_VRS, OPT_LOCAL
+from .constant import CET_ADDI, CET_MULT, FUN_PROD, FUN_COST, OPT_DEFAULT, RTS_CRS, RTS_VRS, OPT_LOCAL,RED_QLE
 from .utils import tools
 
 
-class weakCNLSb:
+class weakMetaCNLSb:
     """Convex Nonparametric Least Square with weak disposability (weakCNLSb)
         lnb=ln(\gamma y -\beta x -\alpha) - \epsilon(\epsilon<0)
     """
 
-    def __init__(self, data,sent, z=None, cet=CET_ADDI, fun=FUN_PROD, rts=RTS_VRS,baseindex=None,refindex=None):
+    def __init__(self, data,GCE,sent, z=None, cet=CET_ADDI, \
+                 fun=FUN_PROD, rts=RTS_VRS,baseindex=None,refindex=None):
         """weakCNLSb model
 
         Args:
+            GCE(pd.DataFrame): 分组后求的GCE.
             sent (str): inputvars=outputvars: unoutputvars. e.g.: "K L = Y:CO2 "
             z (float, optional): Contextual variable(s). Defaults to None.
             cet (String, optional): CET_ADDI (additive composite error term) or CET_MULT (multiplicative composite error term). Defaults to CET_ADDI.
@@ -43,6 +45,13 @@ class weakCNLSb:
         self.cet = cet
         self.fun = fun
         self.rts = rts
+
+
+        self.GCE = GCE
+        print("GCE is:",self.GCE)
+
+        self.GCE_C = pd.DataFrame(self.GCE.iloc[:,0].to_numpy() *self.b.iloc[:,0].to_numpy(),index=self.x.index)
+        print("GCE_C",self.GCE_C)
 
         # Initialize the CNLS model
         self.__model__ = ConcreteModel()
@@ -131,7 +140,8 @@ class weakCNLSb:
             if self.rts == RTS_VRS:
                 if type(self.z) != type(None):
                     def regression_rule(model, i):
-                        return np.array(1/self.b.loc[i,])  == model.alpha[i] \
+
+                        return np.array(1/ self.GCE_C.loc[i,]) == model.alpha[i] \
                                 + sum(model.beta[i, k] * self.x.loc[i,self.xcol[k]] for k in model.K) \
                                 - sum(model.gamma[i, l] * self.y.loc[i,self.ycol[l]] for l in model.L) \
                                 - sum(model.lamda[m] * self.z.loc[i,self.zcol[m]] for m in model.M) \
@@ -140,7 +150,7 @@ class weakCNLSb:
                     return regression_rule
 
                 def regression_rule(model, i):
-                    return np.array(1/self.b.loc[i,]) == model.alpha[i] \
+                    return np.array(1/ self.GCE_C.loc[i,]) == -model.alpha[i] \
                             + sum(model.beta[i, k] * self.x.loc[i,self.xcol[k]] for k in model.K) \
                             - sum(model.gamma[i, l] * self.y.loc[i,self.ycol[l]] for l in model.L) \
                             - model.epsilon[i]
@@ -149,8 +159,8 @@ class weakCNLSb:
             elif self.rts == RTS_CRS:
                 if type(self.z) != type(None):
                     def regression_rule(model, i):
-                        return np.array(1/self.b.loc[i,]) == \
-                            sum(model.beta[i, k] * self.x.loc[i,self.xcol[k]] for k in model.K) \
+                        return np.array(1/ self.GCE_C.loc[i,]) == \
+                                sum(model.beta[i, k] * self.x.loc[i,self.xcol[k]] for k in model.K) \
                                 - sum(model.gamma[i, l] * self.y.loc[i,self.ycol[l]] for l in model.L) \
                                 - sum(model.lamda[m] * self.z.loc[i,self.ycol[m]] for m in model.M) \
                                 - model.epsilon[i]
@@ -158,8 +168,8 @@ class weakCNLSb:
                     return regression_rule
 
                 def regression_rule(model, i):
-                    return np.array(1/self.b.loc[i,]) == \
-                        sum(model.beta[i, k] * self.x.loc[i,self.xcol[k]] for k in model.K) \
+                    return np.array(1/ self.GCE_C.loc[i,]) == \
+                            sum(model.beta[i, k] * self.x.loc[i,self.xcol[k]] for k in model.K) \
                             - sum(model.gamma[i, l] * self.y.loc[i,self.ycol[l]]  for l in model.L) \
                             - model.epsilon[i]
 
@@ -168,14 +178,14 @@ class weakCNLSb:
         elif self.cet == CET_MULT:
             if type(self.z) != type(None):
                 def regression_rule(model, i):
-                    return log(np.array(1/self.b.loc[i,])) == log(model.frontier[i] + 1) \
-                            + sum(model.lamda[m] * self.z.loc[i,self.ycol[m]]  for m in model.M) \
+                    return log(np.array(1/ self.GCE_C.loc[i,])) == log(model.frontier[i] + 1) \
+                            - sum(model.lamda[m] * self.z.loc[i,self.ycol[m]]  for m in model.M) \
                             - model.epsilon[i]
 
                 return regression_rule
 
             def regression_rule(model, i):
-                return log(np.array(1/self.b.loc[i,])) == log(model.frontier[i] + 1) \
+                return log(np.array(1/ self.GCE_C.loc[i,])) == log(model.frontier[i] + 1) \
                         - model.epsilon[i]
 
             return regression_rule

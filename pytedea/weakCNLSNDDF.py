@@ -13,7 +13,7 @@ class weakCNLSNDDF(weakCNLSy.weakCNLSy):
     """
 
     def __init__(self,data,sent, z=None, gy=[1], gx=[1], gb=[1],weight =None, \
-                 fun=FUN_PROD, rts=RTS_VRS, baseindex=None,refindex=None):
+                 deduce="Y", fun=FUN_PROD, rts=RTS_VRS, baseindex=None,refindex=None):
         """weakCNLS NDDF model
 
         Args:
@@ -24,6 +24,8 @@ class weakCNLSNDDF(weakCNLSy.weakCNLSy):
             gy (list, optional): output directional vector. Defaults to [1].
             gx (list, optional): input directional vector. Defaults to [1].
             gb (list, optional): undesirable output directional vector. Defaults to [1].
+            deduce(string,optional): deduce the value of the variable / directional vector of the variable \
+                             form the value of all the varibles.Defaults to minus Y/gy .
             fun (String, optional): FUN_PROD (production frontier) or FUN_COST (cost frontier). Defaults to FUN_PROD.
             rts (String, optional): RTS_VRS (variable returns to scale) or RTS_CRS (constant returns to scale). Defaults to RTS_VRS.
             baseindex (String, optional): estimate index. Defaults to None. e.g.: "Year=[2010]"
@@ -38,6 +40,48 @@ class weakCNLSNDDF(weakCNLSy.weakCNLSy):
         self.ycol = self.y.columns
         self.bcol = self.b.columns
         self.zcol = self.z.columns if type(z) != type(None) else None
+
+        self.decuce = deduce
+        print("deduce",deduce)
+        if deduce in self.xcol:
+            tomunus_col=self.x[[deduce]]
+            tomunus_index = list(self.xcol).index(deduce)
+            tomunus_g = self.gx[tomunus_index]
+            print("sssssssssss:",tomunus_col,tomunus_index,tomunus_g)
+
+
+            self.actrual_value = tomunus_col / tomunus_g
+            if tomunus_g==0:
+                raise ValueError("The directional vector of the variable you want to minus must not be 0.")
+        elif deduce in self.ycol:
+            tomunus_col=self.y[[deduce]]
+            tomunus_index = list(self.ycol).index(deduce)
+            tomunus_g = self.gy[tomunus_index]
+            self.actrual_value = tomunus_col / tomunus_g
+            if tomunus_g==0:
+                raise ValueError("The directional vector of the variable you want to minus must not be 0.")
+        elif deduce in self.bcol:
+            tomunus_col = self.b[[deduce]]
+
+            tomunus_index = list(self.bcol).index(deduce)
+            tomunus_g = self.gb[tomunus_index]
+
+            self.actrual_value = tomunus_col / tomunus_g
+            if tomunus_g == 0:
+                raise ValueError("The directional vector of the variable you want to minus must not be 0.")
+        else:
+            raise ValueError("deduce must be selected in your variables")
+
+        print("actrual_value is:",self.actrual_value)
+
+
+        self.y = pd.DataFrame(self.y.to_numpy() -\
+                      self.actrual_value.to_numpy() * np.array(self.gy),columns=self.y.columns,index=self.y.index)
+        self.x = pd.DataFrame(self.x.to_numpy() +\
+                      self.actrual_value.to_numpy() * np.array(self.gx),columns=self.x.columns,index=self.x.index)
+        self.b = pd.DataFrame(self.b.to_numpy() +\
+                      self.actrual_value.to_numpy() * np.array(self.gb),columns=self.b.columns,index=self.b.index)
+
 
         self.fun = fun
         self.rts = rts
@@ -68,7 +112,8 @@ class weakCNLSNDDF(weakCNLSy.weakCNLSy):
                     self.weight.append(0)
                 else:
                     self.weight.append(1/fenmu/abs(np.asarray(gb)).sum())
-
+        print("sssssssssssss",self.weight)
+        print("sssssssssssss",self.x)
 
         self.iweight = self.weight[0:len(self.x.iloc[0])]
         self.oweight = self.weight[len(self.x.iloc[0]):len(self.x.iloc[0])+len(self.y.iloc[0])]
@@ -131,10 +176,10 @@ class weakCNLSNDDF(weakCNLSy.weakCNLSy):
                                                 rule=self.__afriat_rule(),
                                                 doc='afriat inequality')
         # self.__model__.afriat_rule.pprint()
-        self.__model__.disposability_rule = Constraint(self.__model__.I,
-                                                        self.__model__.I,
-                                                        rule=self.__disposability_rule(),
-                                                        doc='weak disposibility')
+        # self.__model__.disposability_rule = Constraint(self.__model__.I,
+        #                                                 self.__model__.I,
+        #                                                 rule=self.__disposability_rule(),
+        #                                                 doc='weak disposibility')
         # self.__model__.disposability_rule.pprint()
         if self.referenceflag:
             self.__model__.afriat_ref_rule = Constraint(self.__model__.I,
@@ -174,40 +219,42 @@ class weakCNLSNDDF(weakCNLSy.weakCNLSy):
         if self.rts == RTS_VRS:
             if type(self.z) != type(None):
                 def regression_rule(model, i):
-                    return sum(model.gamma[i, l] * self.y.loc[i,self.ycol[l]] for l in model.L) \
+                    return self.actrual_value.loc[i,self.decuce]\
                         == model.alpha[i] \
                         + sum(model.beta[i, k] * self.x.loc[i,self.xcol[k]]  for k in model.K) \
                         + sum(model.delta[i, j] * self.b.loc[i,self.bcol[j]] for j in model.J) \
+                        - sum(model.gamma[i, l] * self.y.loc[i, self.ycol[l]] for l in model.L) \
                         - sum(model.lamda[m] * self.z.loc[i,self.zcol[m]] for m in model.M) \
                         - model.epsilon[i]
-
                 return regression_rule
+
             elif type(self.z) == type(None):
                 def regression_rule(model, i):
-                    return sum(model.gamma[i, l] * self.y.loc[i,self.ycol[l]] for l in model.L) \
+                    return self.actrual_value.loc[i,self.decuce]\
                         == model.alpha[i] \
                         + sum(model.beta[i, k] * self.x.loc[i,self.xcol[k]]  for k in model.K) \
                         + sum(model.delta[i, j] * self.b.loc[i,self.bcol[j]] for j in model.J) \
+                        - sum(model.gamma[i, l] * self.y.loc[i, self.ycol[l]] for l in model.L) \
                         - model.epsilon[i]
                 return regression_rule
 
         elif self.rts == RTS_CRS:
             if type(self.z) != type(None):
                 def regression_rule(model, i):
-                    return sum(model.gamma[i, l] * self.y.loc[i,self.ycol[l]] for l in model.L) \
-                        == \
-                        + sum(model.beta[i, k] * self.x.loc[i,self.xcol[k]]  for k in model.K) \
+                    return self.actrual_value.loc[i,self.decuce]\
+                        == sum(model.beta[i, k] * self.x.loc[i,self.xcol[k]]  for k in model.K) \
                         + sum(model.delta[i, j] * self.b.loc[i,self.bcol[j]] for j in model.J) \
+                        - sum(model.gamma[i, l] * self.y.loc[i, self.ycol[l]] for l in model.L) \
                         - sum(model.lamda[m] * self.z.loc[i,self.zcol[m]] for m in model.M) \
                         - model.epsilon[i]
                 return regression_rule
 
             elif type(self.z) == type(None):
                 def regression_rule(model, i):
-                    return sum(model.gamma[i, l] * self.y.loc[i,self.ycol[l]] for l in model.L) \
-                        == \
-                        + sum(model.beta[i, k] * self.x.loc[i,self.xcol[k]]  for k in model.K) \
-                        + sum(model.delta[i, j] * self.b.loc[i,self.bcol[j]] for j in model.J) \
+                    return self.actrual_value.loc[i, self.decuce] \
+                        == sum(model.beta[i, k] * self.x.loc[i, self.xcol[k]] for k in model.K) \
+                        + sum(model.delta[i, j] * self.b.loc[i, self.bcol[j]] for j in model.J) \
+                        - sum(model.gamma[i, l] * self.y.loc[i, self.ycol[l]] for l in model.L) \
                         - model.epsilon[i]
                 return regression_rule
 

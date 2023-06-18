@@ -9,12 +9,12 @@ from .constant import CET_ADDI, FUN_COST, FUN_PROD, RTS_VRS, RTS_CRS,OPT_DEFAULT
 from .utils import tools
 
 
-class weakCNLSDDF(weakCNLSy.weakCNLSy):
+class weakMetaCNLSDDF(weakCNLSy.weakCNLSy):
     """Convex Nonparametric Least Square with directional distance function
     """
 
-    def __init__(self, data,sent = "inputvar=outputvar:unoutputvar",z=None,  gy=[1], gx=[1], gb=[1],deduce="Y", \
-                 rts=RTS_VRS,fun=FUN_PROD, baseindex=None,refindex=None):
+    def __init__(self, data,Eineff,sent = "inputvar=outputvar:unoutputvar",z=None,  gy=[1], gx=[1], gb=[1],\
+                 deduce="Y", fun=FUN_PROD,rts=RTS_VRS, baseindex=None,refindex=None):
         """DDFDUAL: Dual of Directional distance function
 
         Args:
@@ -75,7 +75,7 @@ class weakCNLSDDF(weakCNLSy.weakCNLSy):
         self.b = pd.DataFrame(self.b.to_numpy() +\
                       self.actrual_value.to_numpy() * np.array(self.gb),columns=self.b.columns,index=self.b.index)
 
-        print("actrual_value is:",self.actrual_value)
+        print("actrual_value222 is:",self.actrual_value)
 
         self.fun = fun
         self.rts = rts
@@ -84,6 +84,12 @@ class weakCNLSDDF(weakCNLSy.weakCNLSy):
 
         print("gx,gy,gb are:",self.gx,self.gy,self.gb)
         # print("aaa",self.y,self.x,self.b)
+        self.Eineff = Eineff
+        Eineff.columns = ['Eineff1']
+        print("Eineff is:",self.Eineff)
+
+
+
 
         self.__model__ = ConcreteModel()
 
@@ -172,7 +178,7 @@ class weakCNLSDDF(weakCNLSy.weakCNLSy):
         if self.rts == RTS_VRS:
             if type(self.z) != type(None):
                 def regression_rule(model, i):
-                    return self.actrual_value.loc[i,self.decuce]\
+                    return self.actrual_value.loc[i,self.decuce]+self.Eineff.loc[i,'Eineff1']\
                         == model.alpha[i] \
                         + sum(model.beta[i, k] * self.x.loc[i,self.xcol[k]] for k in model.K) \
                         + sum(model.delta[i, j] * self.b.loc[i,self.bcol[j]] for j in model.J) \
@@ -182,7 +188,7 @@ class weakCNLSDDF(weakCNLSy.weakCNLSy):
                 return regression_rule
 
             def regression_rule(model,i):
-                return self.actrual_value.loc[i, self.decuce] \
+                return self.actrual_value.loc[i, self.decuce]+self.Eineff.loc[i,'Eineff1']\
                     == model.alpha[i] \
                     + sum(model.beta[i, k] * self.x.loc[i, self.xcol[k]] for k in model.K) \
                     + sum(model.delta[i, j] * self.b.loc[i, self.bcol[j]] for j in model.J) \
@@ -193,7 +199,7 @@ class weakCNLSDDF(weakCNLSy.weakCNLSy):
         elif self.rts == RTS_CRS:
             if type(self.z) != type(None):
                 def regression_rule(model, i):
-                    return self.actrual_value.loc[i,self.decuce]\
+                    return self.actrual_value.loc[i,self.decuce]+self.Eineff.loc[i,'Eineff1']\
                         == sum(model.beta[i, k] * self.x.loc[i,self.xcol[k]] for k in model.K) \
                         + sum(model.delta[i, j] * self.b.loc[i,self.bcol[j]] for j in model.J) \
                         - sum(model.gamma[i, l] * self.y.loc[i, self.ycol[l]] for l in model.L) \
@@ -202,7 +208,7 @@ class weakCNLSDDF(weakCNLSy.weakCNLSy):
                 return regression_rule
 
             def regression_rule(model,i):
-                return self.actrual_value.loc[i, self.decuce] \
+                return self.actrual_value.loc[i, self.decuce]+self.Eineff.loc[i,'Eineff1']\
                     == sum(model.beta[i, k] * self.x.loc[i, self.xcol[k]] for k in model.K) \
                     + sum(model.delta[i, j] * self.b.loc[i, self.bcol[j]] for j in model.J) \
                     - sum(model.gamma[i, l] * self.y.loc[i, self.ycol[l]] for l in model.L) \

@@ -109,14 +109,14 @@ class CNLS:
                             == model.alpha[i] \
                                 + sum(model.beta[i, k] * self.x.loc[i,self.xcol[k]] for k in model.K) \
                                 - sum(model.lamda[m] * self.z.loc[i,self.zcol[m]] for m in model.M) \
-                                - model.epsilon[i]
+                                + model.epsilon[i]
                     return regression_rule
 
 
                 def regression_rule(model, i):
                     return np.array((self.y.loc[i,]))   == model.alpha[i] \
                         + sum(model.beta[i, k] * self.x.loc[i,self.xcol[k]] for k in model.K) \
-                        - model.epsilon[i]
+                        + model.epsilon[i]
                 return regression_rule
 
             elif self.rts == RTS_CRS:
@@ -125,13 +125,13 @@ class CNLS:
                         return np.array((self.y.loc[i,]))   == \
                                 sum(model.beta[i, k] * self.x.loc[i,self.xcol[k]] for k in model.K) \
                                 - sum(model.lamda[m] * self.z.loc[i,self.zcol[m]] for m in model.M) \
-                                - model.epsilon[i]
+                                + model.epsilon[i]
                     return regression_rule
 
                 def regression_rule(model, i):
                     return np.array((self.y.loc[i,])) == \
                         sum(model.beta[i, k] * self.x.loc[i,self.xcol[k]] for k in model.K) \
-                        - model.epsilon[i]
+                        + model.epsilon[i]
                 return regression_rule
 
         elif self.cet == CET_MULT:
